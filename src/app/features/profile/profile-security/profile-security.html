@@ -1,0 +1,198 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Password & Security"
+    eyebrow="My Profile"
+    subtitle="Change your password, manage two-factor authentication and review the devices signed in to your account."
+    icon="lock"
+    [compact]="true"
+    [actions]="[{ id: 'back', label: 'My profile', icon: 'account_circle', variant: 'secondary' }]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  <div class="security">
+    <!-- Password -->
+    <section class="ll-card">
+      <header class="ll-card__header">
+        <div>
+          <h3 class="ll-card__title">Change password</h3>
+          <p class="ll-card__subtitle">
+            Use at least {{ minLength }} characters with upper case, lower case, a number and a symbol.
+          </p>
+        </div>
+      </header>
+
+      <div class="ll-card__body">
+        <form [formGroup]="form" (ngSubmit)="changePassword()" novalidate class="password-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Current password</mat-label>
+            <input
+              matInput
+              formControlName="currentPassword"
+              [type]="showPasswords() ? 'text' : 'password'"
+              autocomplete="current-password" />
+            @if (form.controls.currentPassword.touched && form.controls.currentPassword.invalid) {
+              <mat-error>Enter your current password.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>New password</mat-label>
+            <input
+              matInput
+              formControlName="newPassword"
+              [type]="showPasswords() ? 'text' : 'password'"
+              autocomplete="new-password" />
+            <button
+              matIconSuffix
+              type="button"
+              class="reveal"
+              [attr.aria-label]="showPasswords() ? 'Hide passwords' : 'Show passwords'"
+              (click)="toggleVisibility()">
+              <span class="material-symbols-rounded" aria-hidden="true">
+                {{ showPasswords() ? 'visibility_off' : 'visibility' }}
+              </span>
+            </button>
+            @if (form.controls.newPassword.touched && form.controls.newPassword.hasError('required')) {
+              <mat-error>Enter a new password.</mat-error>
+            } @else if (
+              form.controls.newPassword.touched && form.controls.newPassword.hasError('minlength')
+            ) {
+              <mat-error>Use at least {{ minLength }} characters.</mat-error>
+            } @else if (
+              form.controls.newPassword.touched && form.controls.newPassword.hasError('strongPassword')
+            ) {
+              <mat-error>Add upper case, lower case, a number and a symbol.</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Strength meter -->
+          <div class="strength" [attr.aria-label]="'Password strength: ' + strength().label">
+            <div class="strength__bars">
+              @for (step of [0, 1, 2, 3]; track step) {
+                <span
+                  class="strength__bar"
+                  [style.background]="
+                    strength().score > step
+                      ? strength().score <= 1
+                        ? 'var(--ll-danger)'
+                        : strength().score === 2
+                          ? 'var(--ll-warning)'
+                          : 'var(--ll-success)'
+                      : null
+                  "></span>
+              }
+            </div>
+            <span class="strength__label">{{ strength().label }}</span>
+          </div>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Confirm new password</mat-label>
+            <input
+              matInput
+              formControlName="confirmPassword"
+              [type]="showPasswords() ? 'text' : 'password'"
+              autocomplete="new-password" />
+            @if (
+              form.controls.confirmPassword.touched && form.controls.confirmPassword.hasError('required')
+            ) {
+              <mat-error>Re-enter your new password.</mat-error>
+            } @else if (form.controls.confirmPassword.hasError('fieldsMismatch')) {
+              <mat-error>Passwords do not match.</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="password-form__actions">
+            <button mat-flat-button type="submit" [disabled]="submitting()">
+              @if (submitting()) {
+                <span class="material-symbols-rounded ll-spin" aria-hidden="true">progress_activity</span>
+                Updating…
+              } @else {
+                <span class="material-symbols-rounded" aria-hidden="true">lock_reset</span>
+                Change password
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Two-factor & devices -->
+    <div class="security__column">
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <h3 class="ll-card__title">Two-factor authentication</h3>
+        </header>
+        <div class="ll-card__body">
+          <div class="toggle-row">
+            <div>
+              <strong>Require a verification code at sign-in</strong>
+              <small>
+                A six-digit code is sent to your registered mobile number each time you sign in.
+              </small>
+            </div>
+            <mat-slide-toggle
+              [checked]="user()?.twoFactorEnabled ?? false"
+              (change)="toggleTwoFactor($event.checked)"
+              aria-label="Two-factor authentication" />
+          </div>
+
+          @if (!user()?.twoFactorEnabled) {
+            <div class="warning">
+              <span class="material-symbols-rounded" aria-hidden="true">gpp_maybe</span>
+              <span>
+                Two-factor authentication is strongly recommended for administrative accounts and may be
+                mandatory under your operator's security policy.
+              </span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">Devices</h3>
+            <p class="ll-card__subtitle">Sessions that have accessed your account</p>
+          </div>
+          <button mat-stroked-button type="button" (click)="signOutEverywhere()">
+            <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+            Sign out everywhere
+          </button>
+        </header>
+
+        <div class="ll-card__body">
+          <ul class="devices" role="list">
+            @for (device of devices(); track device.id) {
+              <li class="device" [class.device--active]="device.active">
+                <span class="device__icon material-symbols-rounded" aria-hidden="true">
+                  {{ device.deviceType === 'POS' ? 'point_of_sale' : 'devices' }}
+                </span>
+                <div class="device__body">
+                  <strong>{{ device.deviceName }}</strong>
+                  <span>{{ device.os }} · app {{ device.appVersion }}</span>
+                  <span class="device__meta">Last active {{ device.lastSeenAt | llRelative }}</span>
+                </div>
+                <div class="device__trail">
+                  @if (device.active) {
+                    <span class="ll-badge ll-badge--success">Active</span>
+                  }
+                  @if (device.trusted) {
+                    <span class="ll-badge ll-badge--info">Trusted</span>
+                  }
+                  <button
+                    type="button"
+                    class="device__revoke"
+                    [attr.aria-label]="'Revoke ' + device.deviceName"
+                    (click)="revokeDevice(device)">
+                    <span class="material-symbols-rounded" aria-hidden="true">phonelink_erase</span>
+                  </button>
+                </div>
+              </li>
+            } @empty {
+              <li class="devices__empty">No other devices are signed in.</li>
+            }
+          </ul>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

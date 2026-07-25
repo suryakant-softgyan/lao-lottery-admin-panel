@@ -1,0 +1,106 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Search"
+    eyebrow="Universal Search"
+    subtitle="Search across users, agents, retailers, tickets, draws, transactions and pages in one place."
+    icon="search"
+    [compact]="true"
+    [stats]="[{ label: 'Results', value: results().length.toString(), icon: 'manage_search' }]" />
+
+  <!-- Query -->
+  <form class="search-bar ll-card" (ngSubmit)="submit()">
+    <span class="material-symbols-rounded" aria-hidden="true">search</span>
+    <input
+      llAutofocus
+      type="search"
+      placeholder="Ticket number, agent code, phone number, customer name, draw code…"
+      aria-label="Universal search"
+      [ngModel]="term()"
+      (ngModelChange)="term.set($event)"
+      name="q" />
+    <button mat-flat-button type="submit" [disabled]="term().trim().length < 2">Search</button>
+  </form>
+
+  <!-- Type filters -->
+  @if (typeCounts().length > 1) {
+    <div class="type-filters">
+      <button
+        type="button"
+        class="type-chip"
+        [class.type-chip--active]="typeFilter() === ''"
+        (click)="typeFilter.set('')">
+        <span class="material-symbols-rounded" aria-hidden="true">apps</span>
+        All
+        <span class="type-chip__count">{{ results().length }}</span>
+      </button>
+      @for (entry of typeCounts(); track entry.type) {
+        <button
+          type="button"
+          class="type-chip"
+          [class.type-chip--active]="typeFilter() === entry.type"
+          (click)="typeFilter.set(entry.type)">
+          <span class="material-symbols-rounded" aria-hidden="true">{{ entry.icon }}</span>
+          {{ entry.label }}
+          <span class="type-chip__count">{{ entry.count }}</span>
+        </button>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <ll-skeleton variant="list" [count]="8" />
+  } @else if (term().trim().length < 2) {
+    <div class="ll-card">
+      <ll-state-panel
+        kind="empty"
+        icon="manage_search"
+        title="Start typing to search"
+        message="Enter at least two characters. Ticket numbers, agent codes, phone numbers and customer names all work." />
+    </div>
+  } @else if (results().length === 0) {
+    <div class="ll-card">
+      <ll-state-panel
+        kind="no-results"
+        [message]="
+          'Nothing matched “' + term() + '”. Try a different spelling, a code, or a phone number.'
+        " />
+    </div>
+  } @else {
+    @for (group of groups(); track group.type) {
+      <section class="result-group">
+        <h3 class="result-group__label">
+          <span class="material-symbols-rounded" aria-hidden="true">{{ group.icon }}</span>
+          {{ group.label }}
+          <span class="result-group__count">{{ group.items.length }}</span>
+        </h3>
+
+        <ul class="results" role="list">
+          @for (result of group.items; track result.id) {
+            <li>
+              <button type="button" class="result ll-card" (click)="open(result)">
+                @if (result.avatarUrl) {
+                  <ll-avatar [name]="result.title" [src]="result.avatarUrl" [size]="40" />
+                } @else {
+                  <span class="result__icon material-symbols-rounded" aria-hidden="true">
+                    {{ typeIcon(result.type) }}
+                  </span>
+                }
+
+                <span class="result__body">
+                  <span class="result__title">{{ result.title }}</span>
+                  <span class="result__subtitle">{{ result.subtitle }}</span>
+                </span>
+
+                @if (result.meta) {
+                  <span class="result__meta">{{ humanise(result.meta) }}</span>
+                }
+
+                <span class="result__go material-symbols-rounded" aria-hidden="true"> arrow_forward </span>
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</div>

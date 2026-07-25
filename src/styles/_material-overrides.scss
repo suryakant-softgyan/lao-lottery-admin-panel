@@ -1,0 +1,374 @@
+/* Bridges Angular Material onto the CSS custom properties published by
+   ThemeService, and implements the configurable button/table style variants. */
+
+/* ------------------------------------------------------------------ buttons */
+
+.mat-mdc-button-base {
+  --mdc-text-button-label-text-color: var(--ll-primary);
+  letter-spacing: 0.01em;
+  font-weight: 600;
+  transition:
+    transform var(--ll-duration-fast, 140ms) var(--ll-ease),
+    box-shadow var(--ll-duration-fast, 140ms) var(--ll-ease),
+    background-color var(--ll-duration-fast, 140ms) var(--ll-ease);
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+.mat-mdc-raised-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-flat-button {
+  --mdc-filled-button-container-color: var(--ll-primary);
+  --mdc-filled-button-label-text-color: var(--ll-primary-contrast);
+  --mdc-protected-button-container-color: var(--ll-primary);
+  --mdc-protected-button-label-text-color: var(--ll-primary-contrast);
+}
+
+.mat-mdc-outlined-button {
+  --mdc-outlined-button-label-text-color: var(--ll-primary);
+  --mdc-outlined-button-outline-color: color-mix(in srgb, var(--ll-primary) 45%, transparent);
+}
+
+/* Button style variants selected on the Appearance page. */
+:root[data-button-style='rounded'] .mat-mdc-button-base {
+  border-radius: var(--ll-radius) !important;
+}
+
+:root[data-button-style='pill'] .mat-mdc-button-base {
+  border-radius: var(--ll-radius-pill) !important;
+}
+
+:root[data-button-style='square'] .mat-mdc-button-base {
+  border-radius: 3px !important;
+}
+
+:root[data-button-style='soft'] {
+  .mat-mdc-raised-button,
+  .mat-mdc-unelevated-button,
+  .mat-mdc-flat-button {
+    --mdc-filled-button-container-color: var(--ll-primary-soft);
+    --mdc-filled-button-label-text-color: var(--ll-primary);
+    box-shadow: none;
+  }
+}
+
+:root[data-button-style='gradient'] {
+  .mat-mdc-raised-button,
+  .mat-mdc-unelevated-button,
+  .mat-mdc-flat-button {
+    background: var(--ll-gradient-primary) !important;
+    color: var(--ll-primary-contrast) !important;
+    border: 0;
+  }
+}
+
+:root[data-button-style='outlined'] {
+  .mat-mdc-raised-button,
+  .mat-mdc-unelevated-button,
+  .mat-mdc-flat-button {
+    background: transparent !important;
+    color: var(--ll-primary) !important;
+    border: 1.5px solid color-mix(in srgb, var(--ll-primary) 50%, transparent);
+    box-shadow: none;
+  }
+}
+
+/* ------------------------------------------------------------------ form fields */
+
+.mat-mdc-form-field {
+  width: 100%;
+
+  --mdc-outlined-text-field-outline-color: var(--ll-border);
+  --mdc-outlined-text-field-hover-outline-color: color-mix(in srgb, var(--ll-primary) 45%, var(--ll-border));
+  --mdc-outlined-text-field-focus-outline-color: var(--ll-primary);
+  --mdc-outlined-text-field-label-text-color: var(--ll-text-muted);
+  --mdc-outlined-text-field-input-text-color: var(--ll-text);
+  --mdc-outlined-text-field-container-shape: var(--ll-radius-sm);
+  --mat-form-field-container-text-size: 0.9rem;
+
+  /*
+   * Fields are configured with subscriptSizing:'dynamic', which collapses the
+   * hint/error row to zero height when there is nothing to show. That avoids
+   * dead space under every field, but it also means stacked fields would sit
+   * flush against each other — so the gap is set explicitly here rather than
+   * being an accident of the subscript row.
+   */
+  margin-bottom: 18px;
+}
+
+/* A focused field thickens its own outline; this is the affordance the global
+   focus ring defers to, so it needs to be unmistakable on its own. */
+.mat-mdc-form-field.mat-focused {
+  --mdc-outlined-text-field-focus-outline-width: 2px;
+
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: var(--ll-primary);
+  }
+}
+
+.mat-mdc-form-field-subscript-wrapper {
+  font-size: 0.74rem;
+}
+
+/* Filter bars and toolbars lay fields out inline, where the stacking gap is
+   supplied by the flex container instead. */
+.ll-dense-field {
+  margin-bottom: 0;
+
+  .mat-mdc-form-field-infix {
+    min-height: 40px;
+    padding-block: 8px;
+  }
+
+  .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ menus, dialogs, tooltips */
+
+.mat-mdc-menu-panel {
+  --mat-menu-container-color: var(--ll-surface-elevated);
+  border: 1px solid var(--ll-border);
+  border-radius: var(--ll-radius) !important;
+  box-shadow: var(--ll-shadow-lg) !important;
+  min-width: 210px !important;
+}
+
+.mat-mdc-menu-item {
+  --mat-menu-item-label-text-color: var(--ll-text);
+  font-size: 0.875rem;
+  min-height: 42px;
+
+  /*
+   * Menus pass a bare <span class="material-symbols-rounded"> rather than
+   * <mat-icon>. Material only projects an icon into its leading slot when it
+   * matches `mat-icon, [matMenuItemIcon]`, so without that attribute the glyph
+   * fell through into .mat-mdc-menu-item-text and rendered as inline text beside
+   * the label — flush against it, and riding the label's baseline rather than
+   * its centre. The templates now mark it, which makes it a direct child of the
+   * item; the box and spacing are ours to supply.
+   *
+   * The child combinator matters: the notification menu keeps its icon inside
+   * the text span with sizing of its own, and must not be caught by this.
+   */
+  > .material-symbols-rounded {
+    flex: 0 0 auto;
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    line-height: 1;
+    margin-inline-end: 12px;
+  }
+
+  &:hover:not([disabled]) {
+    background: var(--ll-surface-hover);
+  }
+
+  &.ll-menu-item--danger {
+    --mat-menu-item-label-text-color: var(--ll-danger);
+    color: var(--ll-danger);
+  }
+}
+
+.ll-dialog-panel {
+  .mat-mdc-dialog-container {
+    --mdc-dialog-container-color: var(--ll-surface-elevated);
+    --mdc-dialog-container-shape: var(--ll-radius-lg);
+  }
+
+  .mat-mdc-dialog-surface {
+    border: 1px solid var(--ll-border);
+    box-shadow: var(--ll-shadow-lg);
+  }
+}
+
+.ll-dialog-panel--wide .mat-mdc-dialog-surface {
+  max-width: min(1100px, 96vw);
+}
+
+.mat-mdc-tooltip {
+  --mdc-plain-tooltip-container-color: color-mix(in srgb, var(--ll-text) 92%, transparent);
+  --mdc-plain-tooltip-supporting-text-color: var(--ll-surface-elevated);
+  --mdc-plain-tooltip-supporting-text-size: 0.75rem;
+  border-radius: var(--ll-radius-sm) !important;
+}
+
+.cdk-overlay-dark-backdrop {
+  background: var(--ll-scrim);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+/* ------------------------------------------------------------------ tabs, chips, toggles */
+
+.mat-mdc-tab-group,
+.mat-mdc-tab-nav-bar {
+  --mdc-tab-indicator-active-indicator-color: var(--ll-primary);
+  --mat-tab-header-active-label-text-color: var(--ll-primary);
+  --mat-tab-header-active-focus-label-text-color: var(--ll-primary);
+  --mat-tab-header-active-hover-label-text-color: var(--ll-primary);
+  --mat-tab-header-inactive-label-text-color: var(--ll-text-secondary);
+  --mat-tab-header-label-text-weight: 600;
+}
+
+.mat-mdc-chip {
+  --mdc-chip-container-shape-radius: var(--ll-radius-pill);
+  --mdc-chip-label-text-size: 0.78rem;
+}
+
+.mat-mdc-slide-toggle {
+  --mdc-switch-selected-track-color: color-mix(in srgb, var(--ll-primary) 45%, transparent);
+  --mdc-switch-selected-handle-color: var(--ll-primary);
+  --mdc-switch-selected-hover-handle-color: var(--ll-primary);
+  --mdc-switch-selected-focus-handle-color: var(--ll-primary);
+  --mdc-switch-selected-pressed-handle-color: var(--ll-primary);
+}
+
+.mat-mdc-checkbox,
+.mat-mdc-radio-button {
+  --mdc-checkbox-selected-icon-color: var(--ll-primary);
+  --mdc-checkbox-selected-hover-icon-color: var(--ll-primary);
+  --mdc-checkbox-selected-focus-icon-color: var(--ll-primary);
+  --mdc-radio-selected-icon-color: var(--ll-primary);
+}
+
+.mat-mdc-progress-bar {
+  --mdc-linear-progress-active-indicator-color: var(--ll-primary);
+  --mdc-linear-progress-track-color: color-mix(in srgb, var(--ll-primary) 18%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mat-mdc-progress-spinner {
+  --mdc-circular-progress-active-indicator-color: var(--ll-primary);
+}
+
+/* ------------------------------------------------------------------ tables */
+
+.mat-mdc-table {
+  --mat-table-background-color: transparent;
+  width: 100%;
+}
+
+.mat-mdc-header-row {
+  background: var(--ll-table-header);
+  height: auto !important;
+}
+
+.mat-mdc-header-cell {
+  color: var(--ll-text-secondary);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  border-bottom-color: var(--ll-border) !important;
+  padding: 12px 14px !important;
+  white-space: nowrap;
+}
+
+.mat-mdc-cell {
+  color: var(--ll-text);
+  font-size: 0.855rem;
+  border-bottom-color: var(--ll-border) !important;
+  padding: 10px 14px !important;
+}
+
+.mat-mdc-row {
+  height: var(--ll-row-height);
+  transition: background-color 120ms var(--ll-ease);
+}
+
+/* Table style variants, combinable from the Appearance page. */
+:root[data-table-style~='zebra'] .mat-mdc-row:nth-child(even) {
+  background: color-mix(in srgb, var(--ll-surface) 55%, transparent);
+}
+
+:root[data-table-style~='hover-highlight'] .mat-mdc-row:hover {
+  background: var(--ll-surface-hover);
+}
+
+:root[data-table-style~='bordered'] {
+  .mat-mdc-cell,
+  .mat-mdc-header-cell {
+    border-right: 1px solid var(--ll-border);
+
+    &:last-child {
+      border-right: 0;
+    }
+  }
+}
+
+:root[data-table-style~='compact'] {
+  .mat-mdc-cell {
+    padding: 6px 10px !important;
+  }
+
+  .mat-mdc-header-cell {
+    padding: 8px 10px !important;
+  }
+}
+
+.mat-mdc-paginator {
+  background: transparent;
+  --mat-paginator-container-text-size: 0.8rem;
+  color: var(--ll-text-secondary);
+}
+
+.mat-sort-header-arrow {
+  color: var(--ll-primary);
+}
+
+/* ------------------------------------------------------------------ snackbar */
+
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: var(--ll-surface-elevated);
+  --mdc-snackbar-supporting-text-color: var(--ll-text);
+  --mat-snack-bar-button-color: var(--ll-primary);
+}
+
+/* ------------------------------------------------------------------ expansion */
+
+.mat-expansion-panel {
+  background: var(--ll-surface-elevated) !important;
+  border: 1px solid var(--ll-border);
+  border-radius: var(--ll-radius) !important;
+  box-shadow: none !important;
+
+  & + .mat-expansion-panel {
+    margin-top: 10px;
+  }
+}
+
+.mat-expansion-panel-header-title {
+  color: var(--ll-text);
+  font-weight: 600;
+}
+
+.mat-expansion-panel-header-description {
+  color: var(--ll-text-muted);
+}
+
+/* ------------------------------------------------------------------ datepicker */
+
+.mat-datepicker-content {
+  background: var(--ll-surface-elevated) !important;
+  border: 1px solid var(--ll-border);
+  border-radius: var(--ll-radius) !important;
+  box-shadow: var(--ll-shadow-lg) !important;
+}
+
+.mat-calendar-body-selected {
+  background-color: var(--ll-primary) !important;
+  color: var(--ll-primary-contrast) !important;
+}
+
+.mat-calendar-body-today:not(.mat-calendar-body-selected) {
+  border-color: var(--ll-primary) !important;
+}

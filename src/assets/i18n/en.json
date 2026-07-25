@@ -1,0 +1,94 @@
+{
+  "common": {
+    "actions": {
+      "add": "Add",
+      "approve": "Approve",
+      "back": "Back",
+      "cancel": "Cancel",
+      "clear": "Clear",
+      "close": "Close",
+      "confirm": "Confirm",
+      "create": "Create",
+      "delete": "Delete",
+      "download": "Download",
+      "edit": "Edit",
+      "export": "Export",
+      "filter": "Filter",
+      "print": "Print",
+      "refresh": "Refresh",
+      "reject": "Reject",
+      "reset": "Reset",
+      "save": "Save",
+      "search": "Search",
+      "submit": "Submit",
+      "view": "View"
+    },
+    "states": {
+      "loading": "Loading…",
+      "empty": "Nothing here yet",
+      "noResults": "No matching records",
+      "error": "Something went wrong",
+      "retry": "Try again",
+      "offline": "You appear to be offline"
+    },
+    "labels": {
+      "status": "Status",
+      "createdAt": "Created",
+      "updatedAt": "Updated",
+      "actions": "Actions",
+      "total": "Total",
+      "all": "All",
+      "yes": "Yes",
+      "no": "No"
+    }
+  },
+  "nav": {
+    "section": {
+      "overview": "Overview",
+      "operations": "Operations",
+      "network": "Distribution Network",
+      "finance": "Finance",
+      "administration": "Administration"
+    },
+    "dashboard": "Dashboard",
+    "lottery": "Lottery",
+    "draws": "Draw Management",
+    "tickets": "Tickets",
+    "agents": "Agents",
+    "retailers": "Retailers",
+    "wallet": "Wallet",
+    "payment": "Payments",
+    "users": "User Management",
+    "notifications": "Notifications",
+    "reports": "Reports",
+    "audit": "Audit & Logs",
+    "settings": "Settings",
+    "profile": "My Profile"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "username": "Username or email",
+    "password": "Password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "verification": "Two-factor verification",
+    "resetPassword": "Reset your password"
+  },
+  "dashboard": {
+    "title": "Operations Dashboard",
+    "todaysSales": "Today's Sales",
+    "todaysRevenue": "Today's Revenue",
+    "pendingDraws": "Pending Draws",
+    "todaysWinners": "Today's Winners",
+    "activeUsers": "Active Users",
+    "activeAgents": "Active Agents",
+    "retailers": "Retailers",
+    "ticketsSold": "Tickets Sold",
+    "cancelledTickets": "Cancelled Tickets",
+    "pendingPayments": "Pending Payments",
+    "failedTransactions": "Failed Transactions",
+    "walletBalance": "Wallet Balance",
+    "commission": "Commission"
+  }
+}

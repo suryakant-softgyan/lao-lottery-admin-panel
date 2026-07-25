@@ -1,0 +1,627 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Appearance"
+    eyebrow="Settings"
+    subtitle="Theme, colours, typography, density, layout and accessibility. Every change applies instantly across the portal."
+    icon="palette"
+    [compact]="true"
+    [actions]="[
+      { id: 'export', label: 'Export', icon: 'download', variant: 'secondary' },
+      { id: 'reset', label: 'Reset to defaults', icon: 'restart_alt', variant: 'secondary' },
+    ]"
+    (actionSelected)="$event === 'reset' ? reset() : exportConfiguration()" />
+
+  <section class="ll-grid ll-grid--auto ll-stagger" aria-label="Current appearance">
+    @for (metric of summary(); track metric.id) {
+      <ll-stat-card [metric]="metric" />
+    }
+  </section>
+
+  <div class="ll-card">
+    <mat-tab-group animationDuration="200ms">
+      <!-- ------------------------------------------------------------ Theme -->
+      <mat-tab label="Theme">
+        <div class="tab">
+          <section class="block">
+            <header class="block__head">
+              <h3>Theme presets</h3>
+              <p>Thirteen shipped palettes. Each supports light, dark and automatic modes.</p>
+            </header>
+
+            <div class="presets">
+              @for (preset of presets; track preset.id) {
+                <button
+                  type="button"
+                  class="preset"
+                  [class.preset--active]="settings().presetId === preset.id"
+                  [matTooltip]="preset.description"
+                  (click)="setPreset(preset.id)">
+                  <span class="preset__swatches" aria-hidden="true">
+                    @for (swatch of preset.swatches; track swatch) {
+                      <span class="preset__swatch" [style.background]="swatch"></span>
+                    }
+                  </span>
+                  <span class="preset__name">{{ preset.name }}</span>
+                  @if (settings().presetId === preset.id) {
+                    <span class="preset__check material-symbols-rounded" aria-hidden="true">
+                      check_circle
+                    </span>
+                  }
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Colour mode</h3>
+              <p>Automatic follows the operating system preference and switches with it.</p>
+            </header>
+
+            <div class="options options--wide">
+              @for (mode of modes; track mode.value) {
+                <button
+                  type="button"
+                  class="option"
+                  [class.option--active]="settings().mode === mode.value"
+                  (click)="setMode(mode.value)">
+                  <span class="material-symbols-rounded" aria-hidden="true">{{ mode.icon }}</span>
+                  <span class="option__body">
+                    <strong>{{ mode.label }}</strong>
+                    <small>{{ mode.hint }}</small>
+                  </span>
+                </button>
+              }
+            </div>
+          </section>
+
+          <!-- Colour overrides -->
+          <section class="block">
+            <header class="block__head">
+              <h3>
+                Colour overrides
+                @if (overrideCount() > 0) {
+                  <span class="ll-badge ll-badge--primary">{{ overrideCount() }} active</span>
+                }
+              </h3>
+              <p>
+                Fine-tune individual colours on top of the selected preset. Clear an override to return to the
+                preset value.
+              </p>
+            </header>
+
+            <div class="colours">
+              @for (field of overrideFields; track field.key) {
+                <div class="colour">
+                  <label [for]="'colour-' + field.key">
+                    {{ field.label }}
+                    <small>{{ field.hint }}</small>
+                  </label>
+                  <div class="colour__control">
+                    <input
+                      [id]="'colour-' + field.key"
+                      type="color"
+                      [value]="overrideValue(field.key)"
+                      (input)="setOverride(field.key, $any($event.target).value)" />
+                    <span class="colour__hex ll-mono">{{ overrideValue(field.key) }}</span>
+                    <button
+                      type="button"
+                      class="colour__clear"
+                      matTooltip="Reset to preset value"
+                      [attr.aria-label]="'Reset ' + field.label"
+                      (click)="clearOverride(field.key)">
+                      <span class="material-symbols-rounded" aria-hidden="true">restart_alt</span>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+
+            @if (overrideCount() > 0) {
+              <button mat-stroked-button type="button" class="block__action" (click)="clearAllOverrides()">
+                <span class="material-symbols-rounded" aria-hidden="true">format_color_reset</span>
+                Clear all overrides
+              </button>
+            }
+          </section>
+        </div>
+      </mat-tab>
+
+      <!-- ------------------------------------------------------- Typography -->
+      <mat-tab label="Typography">
+        <div class="tab">
+          <section class="block">
+            <header class="block__head">
+              <h3>Typeface</h3>
+              <p>Applies to the entire interface, including tables and charts.</p>
+            </header>
+
+            <div class="fonts">
+              @for (font of fonts; track font.value) {
+                <button
+                  type="button"
+                  class="font"
+                  [class.font--active]="settings().typography.fontFamily === font.value"
+                  [style.font-family]="font.stack"
+                  (click)="theme.updateTypography({ fontFamily: font.value })">
+                  <span class="font__sample">Aa</span>
+                  <span class="font__name">{{ font.label }}</span>
+                  <span class="font__preview">Lao National Lottery · 1,234,567 ₭</span>
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Scale</h3>
+              <p>Base font size, line height and letter spacing.</p>
+            </header>
+
+            <div class="sliders">
+              <div class="slider">
+                <label for="font-size">
+                  Font size
+                  <strong class="ll-numeric">{{ settings().typography.fontSize }}px</strong>
+                </label>
+                <mat-slider min="11" max="18" step="1" discrete>
+                  <input
+                    matSliderThumb
+                    id="font-size"
+                    [ngModel]="settings().typography.fontSize"
+                    (ngModelChange)="theme.updateTypography({ fontSize: $event })" />
+                </mat-slider>
+              </div>
+
+              <div class="slider">
+                <label for="line-height">
+                  Line height
+                  <strong class="ll-numeric">{{ settings().typography.lineHeight }}</strong>
+                </label>
+                <mat-slider min="1.2" max="2" step="0.05" discrete>
+                  <input
+                    matSliderThumb
+                    id="line-height"
+                    [ngModel]="settings().typography.lineHeight"
+                    (ngModelChange)="theme.updateTypography({ lineHeight: $event })" />
+                </mat-slider>
+              </div>
+
+              <div class="slider">
+                <label for="letter-spacing">
+                  Letter spacing
+                  <strong class="ll-numeric">{{ settings().typography.letterSpacing }}px</strong>
+                </label>
+                <mat-slider min="-0.5" max="1.5" step="0.1" discrete>
+                  <input
+                    matSliderThumb
+                    id="letter-spacing"
+                    [ngModel]="settings().typography.letterSpacing"
+                    (ngModelChange)="theme.updateTypography({ letterSpacing: $event })" />
+                </mat-slider>
+              </div>
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Icon style</h3>
+            </header>
+            <div class="options">
+              @for (style of iconStyles; track style.value) {
+                <button
+                  type="button"
+                  class="option option--compact"
+                  [class.option--active]="settings().iconStyle === style.value"
+                  (click)="theme.update({ iconStyle: style.value })">
+                  {{ style.label }}
+                </button>
+              }
+            </div>
+          </section>
+        </div>
+      </mat-tab>
+
+      <!-- ---------------------------------------------------------- Components -->
+      <mat-tab label="Components">
+        <div class="tab">
+          <section class="block">
+            <header class="block__head">
+              <h3>Density</h3>
+              <p>Controls row height, control height and spacing throughout.</p>
+            </header>
+            <div class="options options--wide">
+              @for (density of densities; track density.value) {
+                <button
+                  type="button"
+                  class="option"
+                  [class.option--active]="settings().density === density.value"
+                  (click)="theme.setDensity(density.value)">
+                  <span class="material-symbols-rounded" aria-hidden="true">density_medium</span>
+                  <span class="option__body">
+                    <strong>{{ density.label }}</strong>
+                    <small>{{ density.hint }}</small>
+                  </span>
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Shape &amp; elevation</h3>
+            </header>
+            <div class="sliders">
+              <div class="slider">
+                <label for="radius">
+                  Corner radius
+                  <strong class="ll-numeric">{{ settings().borderRadius }}px</strong>
+                </label>
+                <mat-slider min="0" max="24" step="1" discrete>
+                  <input
+                    matSliderThumb
+                    id="radius"
+                    [ngModel]="settings().borderRadius"
+                    (ngModelChange)="theme.update({ borderRadius: $event })" />
+                </mat-slider>
+              </div>
+
+              <div class="slider">
+                <label for="shadow">
+                  Shadow intensity
+                  <strong class="ll-numeric">{{ settings().shadowIntensity }}</strong>
+                </label>
+                <mat-slider min="0" max="5" step="1" discrete>
+                  <input
+                    matSliderThumb
+                    id="shadow"
+                    [ngModel]="settings().shadowIntensity"
+                    (ngModelChange)="theme.update({ shadowIntensity: $event })" />
+                </mat-slider>
+              </div>
+            </div>
+
+            <div class="toggle-row">
+              <div>
+                <strong>Glass effect</strong>
+                <small>Translucent, blurred surfaces on cards, menus and the header</small>
+              </div>
+              <mat-slide-toggle
+                [ngModel]="settings().glassEffect"
+                (ngModelChange)="theme.update({ glassEffect: $event })"
+                aria-label="Glass effect" />
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Button style</h3>
+            </header>
+            <div class="options">
+              @for (style of buttonStyles; track style) {
+                <button
+                  type="button"
+                  class="option option--compact"
+                  [class.option--active]="settings().buttonStyle === style"
+                  (click)="theme.setButtonStyle(style)">
+                  {{ style }}
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Card style</h3>
+            </header>
+            <div class="options">
+              @for (style of cardStyles; track style) {
+                <button
+                  type="button"
+                  class="option option--compact"
+                  [class.option--active]="settings().cardStyle === style"
+                  (click)="theme.setCardStyle(style)">
+                  {{ style }}
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Table style</h3>
+              <p>Combine as many as you like.</p>
+            </header>
+            <div class="options">
+              @for (style of tableStyles; track style.value) {
+                <button
+                  type="button"
+                  class="option option--compact"
+                  [class.option--active]="isTableStyleOn(style.value)"
+                  (click)="toggleTableStyle(style.value)">
+                  <span class="material-symbols-rounded" aria-hidden="true">
+                    {{ isTableStyleOn(style.value) ? 'check_box' : 'check_box_outline_blank' }}
+                  </span>
+                  {{ style.label }}
+                </button>
+              }
+            </div>
+          </section>
+        </div>
+      </mat-tab>
+
+      <!-- -------------------------------------------------------------- Layout -->
+      <mat-tab label="Layout">
+        <div class="tab">
+          <section class="block">
+            <header class="block__head">
+              <h3>Sidebar</h3>
+            </header>
+            <div class="options options--wide">
+              @for (mode of sidebarModes; track mode.value) {
+                <button
+                  type="button"
+                  class="option"
+                  [class.option--active]="settings().layout.sidebar === mode.value"
+                  (click)="theme.updateLayout({ sidebar: mode.value })">
+                  <span class="material-symbols-rounded" aria-hidden="true">{{ mode.icon }}</span>
+                  <span class="option__body"
+                    ><strong>{{ mode.label }}</strong></span
+                  >
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Header</h3>
+            </header>
+            <div class="options options--wide">
+              @for (mode of headerModes; track mode.value) {
+                <button
+                  type="button"
+                  class="option"
+                  [class.option--active]="settings().layout.header === mode.value"
+                  (click)="theme.updateLayout({ header: mode.value })">
+                  <span class="material-symbols-rounded" aria-hidden="true">{{ mode.icon }}</span>
+                  <span class="option__body"
+                    ><strong>{{ mode.label }}</strong></span
+                  >
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Content width</h3>
+            </header>
+            <div class="options options--wide">
+              @for (width of contentWidths; track width.value) {
+                <button
+                  type="button"
+                  class="option"
+                  [class.option--active]="settings().layout.contentWidth === width.value"
+                  (click)="theme.updateLayout({ contentWidth: width.value })">
+                  <span class="material-symbols-rounded" aria-hidden="true">{{ width.icon }}</span>
+                  <span class="option__body"
+                    ><strong>{{ width.label }}</strong></span
+                  >
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Navigation</h3>
+            </header>
+            <div class="options options--wide">
+              @for (mode of navigationModes; track mode.value) {
+                <button
+                  type="button"
+                  class="option"
+                  [class.option--active]="settings().layout.navigation === mode.value"
+                  (click)="theme.updateLayout({ navigation: mode.value })">
+                  <span class="material-symbols-rounded" aria-hidden="true">{{ mode.icon }}</span>
+                  <span class="option__body"
+                    ><strong>{{ mode.label }}</strong></span
+                  >
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Shell elements</h3>
+            </header>
+            <div class="toggle-row">
+              <div>
+                <strong>Show breadcrumb</strong>
+                <small>Trail of parent pages in the hero banner</small>
+              </div>
+              <mat-slide-toggle
+                [ngModel]="settings().layout.showBreadcrumb"
+                (ngModelChange)="theme.updateLayout({ showBreadcrumb: $event })"
+                aria-label="Show breadcrumb" />
+            </div>
+            <div class="toggle-row">
+              <div>
+                <strong>Show footer</strong>
+                <small>Branding, version and system health strip</small>
+              </div>
+              <mat-slide-toggle
+                [ngModel]="settings().layout.showFooter"
+                (ngModelChange)="theme.updateLayout({ showFooter: $event })"
+                aria-label="Show footer" />
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Login page style</h3>
+            </header>
+            <div class="options">
+              @for (login of loginThemes; track login.value) {
+                <button
+                  type="button"
+                  class="option option--compact"
+                  [class.option--active]="settings().loginTheme === login.value"
+                  (click)="theme.update({ loginTheme: login.value })">
+                  {{ login.label }}
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Reading direction</h3>
+              <p>RTL is applied automatically for right-to-left languages.</p>
+            </header>
+            <div class="options">
+              <button
+                type="button"
+                class="option option--compact"
+                [class.option--active]="settings().direction === 'ltr'"
+                (click)="setDirection('ltr')">
+                Left to right
+              </button>
+              <button
+                type="button"
+                class="option option--compact"
+                [class.option--active]="settings().direction === 'rtl'"
+                (click)="setDirection('rtl')">
+                Right to left
+              </button>
+            </div>
+          </section>
+        </div>
+      </mat-tab>
+
+      <!-- ------------------------------------------------ Motion & access -->
+      <mat-tab label="Motion & accessibility">
+        <div class="tab">
+          <section class="block">
+            <header class="block__head">
+              <h3>Animation</h3>
+              <p>
+                The operating system's reduced-motion preference is always respected, whatever is chosen here.
+              </p>
+            </header>
+            <div class="options options--wide">
+              @for (level of animationLevels; track level.value) {
+                <button
+                  type="button"
+                  class="option"
+                  [class.option--active]="settings().animationLevel === level.value"
+                  (click)="theme.setAnimation(level.value)">
+                  <span class="material-symbols-rounded" aria-hidden="true">animation</span>
+                  <span class="option__body">
+                    <strong>{{ level.label }}</strong>
+                    <small>{{ level.hint }}</small>
+                  </span>
+                </button>
+              }
+            </div>
+
+            <div class="options">
+              @for (speed of animationSpeeds; track speed) {
+                <button
+                  type="button"
+                  class="option option--compact"
+                  [class.option--active]="settings().animationSpeed === speed"
+                  [disabled]="settings().animationLevel === 'none'"
+                  (click)="theme.update({ animationSpeed: speed })">
+                  {{ speed }}
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Accessibility</h3>
+              <p>These settings help meet WCAG 2.1 AA in demanding environments.</p>
+            </header>
+
+            <div class="toggle-row">
+              <div>
+                <strong>High contrast</strong>
+                <small>Maximises text and border contrast against surfaces</small>
+              </div>
+              <mat-slide-toggle
+                [ngModel]="settings().accessibility.highContrast"
+                (ngModelChange)="theme.updateAccessibility({ highContrast: $event })"
+                aria-label="High contrast" />
+            </div>
+
+            <div class="toggle-row">
+              <div>
+                <strong>Colour-blind safe charts</strong>
+                <small>Switches charts to the Okabe–Ito palette</small>
+              </div>
+              <mat-slide-toggle
+                [ngModel]="settings().accessibility.colourBlindSafe"
+                (ngModelChange)="theme.updateAccessibility({ colourBlindSafe: $event })"
+                aria-label="Colour-blind safe charts" />
+            </div>
+
+            <div class="toggle-row">
+              <div>
+                <strong>Visible focus indicators</strong>
+                <small>Strong outline on every keyboard-focused element</small>
+              </div>
+              <mat-slide-toggle
+                [ngModel]="settings().accessibility.focusIndicators"
+                (ngModelChange)="theme.updateAccessibility({ focusIndicators: $event })"
+                aria-label="Focus indicators" />
+            </div>
+
+            <div class="toggle-row">
+              <div>
+                <strong>Large touch targets</strong>
+                <small>Minimum 44×44 px hit area on all controls</small>
+              </div>
+              <mat-slide-toggle
+                [ngModel]="settings().accessibility.largeTargets"
+                (ngModelChange)="theme.updateAccessibility({ largeTargets: $event })"
+                aria-label="Large touch targets" />
+            </div>
+
+            <div class="toggle-row">
+              <div>
+                <strong>Screen-reader hints</strong>
+                <small>Extra descriptive text for charts and status changes</small>
+              </div>
+              <mat-slide-toggle
+                [ngModel]="settings().accessibility.screenReaderHints"
+                (ngModelChange)="theme.updateAccessibility({ screenReaderHints: $event })"
+                aria-label="Screen reader hints" />
+            </div>
+          </section>
+
+          <section class="block">
+            <header class="block__head">
+              <h3>Configuration file</h3>
+              <p>Export this appearance configuration to apply the same look to another deployment.</p>
+            </header>
+            <div class="block__actions">
+              <button mat-stroked-button type="button" (click)="exportConfiguration()">
+                <span class="material-symbols-rounded" aria-hidden="true">download</span>
+                Export configuration
+              </button>
+              <label class="upload-button">
+                <input type="file" accept="application/json" (change)="importConfiguration($event)" />
+                <span class="material-symbols-rounded" aria-hidden="true">upload</span>
+                Import configuration
+              </label>
+            </div>
+          </section>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>

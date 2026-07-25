@@ -1,0 +1,242 @@
+:host {
+  display: block;
+}
+
+.detail {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: var(--ll-gap);
+  align-items: start;
+
+  &__aside {
+    display: grid;
+    gap: var(--ll-gap);
+  }
+
+  &__main {
+    overflow: hidden;
+  }
+
+  &__tab-body {
+    padding: 20px;
+  }
+
+  &__section-title {
+    margin: 0 0 6px;
+    font-size: 0.71rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+
+    &:not(:first-child) {
+      margin-top: 26px;
+    }
+  }
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: var(--ll-radius);
+  border: 1px solid;
+
+  .material-symbols-rounded {
+    font-size: 22px;
+    flex: 0 0 auto;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  strong {
+    font-size: 0.86rem;
+  }
+
+  span {
+    font-size: 0.79rem;
+    line-height: 1.5;
+  }
+
+  &--warning {
+    background: var(--ll-warning-soft);
+    border-color: var(--ll-warning-border);
+    color: var(--ll-warning);
+  }
+
+  &--danger {
+    background: var(--ll-danger-soft);
+    border-color: var(--ll-danger-border);
+    color: var(--ll-danger);
+  }
+}
+
+.profile {
+  &__head {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    padding: 22px 18px 16px;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ll-primary) 10%, transparent) 0%,
+      transparent 100%
+    );
+    border-bottom: 1px solid var(--ll-border);
+  }
+
+  &__name {
+    margin: 8px 0 0;
+    font-size: 1.02rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  &__code {
+    margin: 0;
+    font-size: 0.74rem;
+    color: var(--ll-text-muted);
+  }
+
+  &__badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  &__metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--ll-border);
+    border-bottom: 1px solid var(--ll-border);
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 11px 13px;
+      background: var(--ll-surface-elevated);
+    }
+
+    span {
+      font-size: 0.63rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ll-text-muted);
+    }
+
+    strong {
+      font-size: 0.86rem;
+      font-weight: 680;
+    }
+  }
+
+  &__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    padding: 14px 16px 16px;
+
+    .material-symbols-rounded {
+      font-size: 17px;
+      margin-inline-end: 5px;
+    }
+  }
+}
+
+.sub-agents {
+  display: grid;
+  gap: 8px;
+}
+
+.sub-agent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border: 1px solid var(--ll-border);
+  border-radius: var(--ll-radius);
+  background: var(--ll-surface);
+  color: var(--ll-text);
+  text-decoration: none;
+  transition:
+    border-color 150ms var(--ll-ease),
+    transform 150ms var(--ll-ease);
+
+  &:hover {
+    border-color: var(--ll-primary);
+    transform: translateY(-1px);
+    text-decoration: none;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+
+    strong {
+      font-size: 0.86rem;
+      font-weight: 620;
+    }
+
+    span {
+      font-size: 0.74rem;
+      color: var(--ll-text-muted);
+    }
+  }
+
+  &__trail {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+
+    strong {
+      font-size: 0.83rem;
+    }
+  }
+}
+
+.mini-table {
+  width: 100%;
+  font-size: 0.81rem;
+
+  th {
+    padding: 9px 12px;
+    text-align: start;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+    border-bottom: 1px solid var(--ll-border);
+    background: var(--ll-table-header);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--ll-border);
+    white-space: nowrap;
+  }
+
+  tbody tr:hover {
+    background: var(--ll-surface-hover);
+  }
+}
+
+@media (max-width: 1100px) {
+  .detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

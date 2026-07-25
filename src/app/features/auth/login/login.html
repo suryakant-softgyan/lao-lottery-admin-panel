@@ -1,0 +1,106 @@
+<div class="login">
+  <header class="login__header">
+    <h1 class="login__title">{{ branding().loginWelcomeTitle }}</h1>
+    <p class="login__subtitle">{{ branding().loginWelcomeMessage }}</p>
+  </header>
+
+  @if (sessionNotice(); as notice) {
+    <div class="login__notice login__notice--info" role="status">
+      <span class="material-symbols-rounded" aria-hidden="true">info</span>
+      {{ notice }}
+    </div>
+  }
+
+  @if (errorMessage(); as message) {
+    <div class="login__notice login__notice--error" role="alert">
+      <span class="material-symbols-rounded" aria-hidden="true">error</span>
+      {{ message }}
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <mat-form-field appearance="outline">
+      <mat-label>Username or email</mat-label>
+      <input
+        matInput
+        llAutofocus
+        formControlName="username"
+        autocomplete="username"
+        placeholder="e.g. admin"
+        [attr.aria-invalid]="form.controls.username.invalid && form.controls.username.touched" />
+      <span matPrefix class="material-symbols-rounded login__affix" aria-hidden="true">person</span>
+      @if (form.controls.username.touched && form.controls.username.hasError('required')) {
+        <mat-error>Enter your username or email address.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Password</mat-label>
+      <input
+        matInput
+        formControlName="password"
+        [type]="showPassword() ? 'text' : 'password'"
+        autocomplete="current-password" />
+      <span matPrefix class="material-symbols-rounded login__affix" aria-hidden="true">lock</span>
+      <button
+        matIconSuffix
+        type="button"
+        class="login__reveal"
+        [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+        (click)="togglePassword()">
+        <span class="material-symbols-rounded" aria-hidden="true">
+          {{ showPassword() ? 'visibility_off' : 'visibility' }}
+        </span>
+      </button>
+      @if (form.controls.password.touched && form.controls.password.hasError('required')) {
+        <mat-error>Enter your password.</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="login__row">
+      <mat-checkbox formControlName="rememberMe">Remember me</mat-checkbox>
+      <a routerLink="/auth/forgot-password" class="login__link">Forgot password?</a>
+    </div>
+
+    <button mat-flat-button type="submit" class="login__submit" [disabled]="submitting()">
+      @if (submitting()) {
+        <span class="material-symbols-rounded ll-spin" aria-hidden="true">progress_activity</span>
+        Signing in…
+      } @else {
+        Sign in
+        <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+      }
+    </button>
+  </form>
+
+  <!-- Demo credentials: present only while the mock backend is active. -->
+  <section class="login__demo">
+    <button type="button" class="login__demo-toggle" (click)="showDemoPanel.set(!showDemoPanel())">
+      <span class="material-symbols-rounded" aria-hidden="true">science</span>
+      Demo accounts
+      <span class="material-symbols-rounded" aria-hidden="true">
+        {{ showDemoPanel() ? 'expand_less' : 'expand_more' }}
+      </span>
+    </button>
+
+    @if (showDemoPanel()) {
+      <div class="login__demo-body">
+        <p class="login__demo-hint">
+          The portal runs on mock services. Every account uses the password
+          <code>Lottery&#64;2026</code>.
+        </p>
+        <ul role="list">
+          @for (account of demoAccounts; track account.username) {
+            <li>
+              <button type="button" (click)="useDemoAccount(account.username)">
+                <span class="login__demo-user">{{ account.username }}</span>
+                <span class="login__demo-role">{{ account.role }}</span>
+                <span class="login__demo-desc">{{ account.description }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </section>
+</div>

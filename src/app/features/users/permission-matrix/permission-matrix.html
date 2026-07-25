@@ -1,0 +1,141 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Permission Matrix"
+    eyebrow="Access Control"
+    subtitle="Grant or revoke each permission per role. Changes are staged locally and applied only when you save."
+    icon="lock_person"
+    [compact]="true" />
+
+  <!-- Toolbar -->
+  <div class="matrix-bar ll-card">
+    <div class="matrix-bar__search">
+      <span class="material-symbols-rounded" aria-hidden="true">search</span>
+      <input
+        type="search"
+        placeholder="Filter permissions…"
+        aria-label="Filter permissions"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)" />
+    </div>
+
+    <span class="ll-spacer"></span>
+
+    @if (dirty()) {
+      <span class="matrix-bar__dirty">
+        <span class="material-symbols-rounded" aria-hidden="true">edit</span>
+        Unsaved changes
+      </span>
+      <button mat-button type="button" (click)="discard()">Discard</button>
+    }
+
+    <button mat-flat-button type="button" [disabled]="!dirty() || saving()" (click)="save()">
+      @if (saving()) {
+        <span class="material-symbols-rounded ll-spin" aria-hidden="true">progress_activity</span>
+        Saving…
+      } @else {
+        <span class="material-symbols-rounded" aria-hidden="true">save</span>
+        Apply changes
+      }
+    </button>
+  </div>
+
+  @if (loading()) {
+    <ll-skeleton variant="table" [count]="10" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel kind="error" [message]="message" [showRetry]="true" (retry)="load()" />
+  } @else if (modules().length === 0) {
+    <ll-state-panel kind="no-results" />
+  } @else {
+    <div class="ll-card matrix-wrap">
+      <div class="matrix-scroll">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th class="matrix__corner" scope="col">Permission</th>
+              @for (role of roles(); track role.id) {
+                <th class="matrix__role" scope="col">
+                  <div class="matrix__role-head">
+                    <span class="matrix__role-name">{{ role.name }}</span>
+                    <span class="matrix__role-count ll-numeric">{{ grantedCount()[role.id] }}</span>
+                    <button
+                      type="button"
+                      class="matrix__role-reset"
+                      matTooltip="Restore shipped defaults"
+                      [attr.aria-label]="'Restore defaults for ' + role.name"
+                      (click)="resetRole(role)">
+                      <span class="material-symbols-rounded" aria-hidden="true">restart_alt</span>
+                    </button>
+                  </div>
+                </th>
+              }
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (module of modules(); track module.key) {
+              <tr class="matrix__module-row">
+                <th class="matrix__module" scope="rowgroup">
+                  <span class="material-symbols-rounded" aria-hidden="true">{{ module.icon }}</span>
+                  {{ module.label }}
+                </th>
+                @for (role of roles(); track role.id) {
+                  <td class="matrix__module-cell">
+                    <button
+                      type="button"
+                      class="matrix__module-toggle"
+                      [class.matrix__module-toggle--all]="moduleState(role.id, module) === 'all'"
+                      [class.matrix__module-toggle--some]="moduleState(role.id, module) === 'some'"
+                      [matTooltip]="'Toggle all ' + module.label + ' permissions'"
+                      (click)="toggleModule(role.id, module)">
+                      <span class="material-symbols-rounded" aria-hidden="true">
+                        {{
+                          moduleState(role.id, module) === 'all'
+                            ? 'check_box'
+                            : moduleState(role.id, module) === 'some'
+                              ? 'indeterminate_check_box'
+                              : 'check_box_outline_blank'
+                        }}
+                      </span>
+                    </button>
+                  </td>
+                }
+              </tr>
+
+              @for (row of module.rows; track row.code) {
+                <tr>
+                  <th class="matrix__permission" scope="row">
+                    <span class="matrix__permission-action">{{ row.action }}</span>
+                    <span class="matrix__permission-code ll-mono">{{ row.code }}</span>
+                    @if (row.sensitive) {
+                      <span
+                        class="matrix__sensitive material-symbols-rounded"
+                        matTooltip="Sensitive permission — grant deliberately"
+                        aria-label="Sensitive permission">
+                        priority_high
+                      </span>
+                    }
+                  </th>
+                  @for (role of roles(); track role.id) {
+                    <td class="matrix__cell" [class.matrix__cell--sensitive]="row.sensitive">
+                      <mat-checkbox
+                        [checked]="isGranted(role.id, row.code)"
+                        (change)="toggle(role.id, row.code)"
+                        [attr.aria-label]="role.name + ' — ' + row.code" />
+                    </td>
+                  }
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="matrix-legend">
+      <span class="material-symbols-rounded" aria-hidden="true">info</span>
+      Super Admin always holds every permission implicitly and cannot be restricted here. Permissions marked
+      <span class="material-symbols-rounded matrix-legend__icon" aria-hidden="true">priority_high</span>
+      are sensitive and are reported separately in the compliance export.
+    </p>
+  }
+</div>

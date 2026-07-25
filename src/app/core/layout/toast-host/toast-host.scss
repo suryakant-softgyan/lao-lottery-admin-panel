@@ -1,0 +1,124 @@
+:host {
+  display: contents;
+}
+
+.toast-host {
+  position: fixed;
+  z-index: 70;
+  bottom: 20px;
+  inset-inline-end: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(400px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 14px;
+  border-radius: var(--ll-radius);
+  background: var(--ll-surface-elevated);
+  border: 1px solid var(--ll-border);
+  border-inline-start: 3px solid var(--tone, var(--ll-primary));
+  box-shadow: var(--ll-shadow-lg);
+  pointer-events: auto;
+  overflow: hidden;
+  animation: ll-fade-up var(--ll-duration) var(--ll-ease) both;
+
+  @each $tone in (primary, success, warning, danger, info, neutral) {
+    &--#{$tone} {
+      --tone: var(--ll-#{$tone});
+    }
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--tone) 14%, transparent);
+    color: var(--tone);
+    font-size: 18px;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 0.86rem;
+    font-weight: 650;
+    color: var(--ll-text);
+  }
+
+  &__message {
+    margin: 2px 0 0;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--ll-text-secondary);
+  }
+
+  &__action {
+    flex: 0 0 auto;
+    color: var(--tone) !important;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+
+  &__close {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    border-radius: 6px;
+    color: var(--ll-text-muted);
+
+    .material-symbols-rounded {
+      font-size: 16px;
+    }
+
+    &:hover {
+      background: var(--ll-surface-hover);
+      color: var(--ll-text);
+    }
+  }
+
+  /* Progress hairline showing the remaining dwell time. */
+  &__timer {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--tone);
+    transform-origin: inset-inline-start;
+    animation-name: toast-countdown;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+}
+
+@keyframes toast-countdown {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .toast-host {
+    inset-inline: 12px;
+    bottom: 12px;
+    width: auto;
+  }
+}

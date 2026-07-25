@@ -1,0 +1,219 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Live Draw Studio"
+    eyebrow="Draw Operations"
+    subtitle="Execute a draw: close sales, capture the winning numbers per prize tier, then submit for independent verification."
+    icon="sensors"
+    [compact]="true"
+    [actions]="[
+      { id: 'back', label: 'All draws', icon: 'stadia_controller', variant: 'secondary' },
+      { id: 'results', label: 'Verification queue', icon: 'fact_check', variant: 'secondary' },
+    ]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  @if (loading()) {
+    <ll-skeleton variant="card" [count]="2" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel kind="error" [message]="message" [showRetry]="true" (retry)="load()" />
+  } @else if (candidates().length === 0) {
+    <ll-state-panel
+      kind="empty"
+      icon="sensors_off"
+      title="No draw ready for execution"
+      message="A draw appears here once its sales window opens. Schedule a draw to get started."
+      actionLabel="Draw schedule"
+      actionIcon="event"
+      (action)="onHeaderAction('back')" />
+  } @else {
+    <div class="studio">
+      <!-- Draw picker -->
+      <aside class="studio__picker ll-card">
+        <header class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">Draws in play</h3>
+            <p class="ll-card__subtitle">{{ candidates().length }} awaiting action</p>
+          </div>
+        </header>
+        <ul class="picker" role="list">
+          @for (draw of candidates(); track draw.id) {
+            <li>
+              <button
+                type="button"
+                class="picker__item"
+                [class.picker__item--active]="selected().id === draw.id"
+                (click)="select(draw)">
+                <span class="picker__body">
+                  <span class="picker__code">{{ draw.code }}</span>
+                  <span class="picker__lottery">{{ draw.lotteryName }}</span>
+                  <span class="picker__time">{{ draw.scheduledAt | llDate: 'datetime' }}</span>
+                </span>
+                <ll-status-badge [value]="draw.status" [map]="statusMap" [showIcon]="false" />
+              </button>
+            </li>
+          }
+        </ul>
+      </aside>
+
+      <!-- Console -->
+      @if (selected(); as draw) {
+        <section class="console">
+          <!-- Draw header -->
+          <div class="console__header ll-card">
+            <div class="console__identity">
+              <span class="console__live" [class.console__live--on]="draw.status === DrawStatus.Drawing">
+                <span class="console__live-dot" aria-hidden="true"></span>
+                {{ draw.status === DrawStatus.Drawing ? 'LIVE' : 'STANDBY' }}
+              </span>
+              <div>
+                <h2 class="console__code">{{ draw.code }}</h2>
+                <p class="console__lottery">
+                  {{ draw.lotteryName }} · draw #{{ draw.drawNumber }} · {{ digitCount() }} digits
+                </p>
+              </div>
+            </div>
+
+            <div class="console__meta">
+              <div>
+                <span>Status</span>
+                <ll-status-badge [value]="draw.status" [map]="statusMap" />
+              </div>
+              <div>
+                <span>Mode</span>
+                <ll-status-badge [value]="draw.mode" [map]="modeMap" />
+              </div>
+              <div>
+                <span>Tickets sold</span>
+                <strong class="ll-numeric">{{ draw.ticketsSold.toLocaleString() }}</strong>
+              </div>
+              <div>
+                <span>Sales value</span>
+                <strong class="ll-numeric">{{ draw.salesAmount | llCurrency: true }}</strong>
+              </div>
+            </div>
+
+            <div class="console__countdown">
+              <span class="console__countdown-label">
+                {{ draw.status === DrawStatus.SalesOpen ? 'Sales close in' : 'Draw time' }}
+              </span>
+              <ll-countdown
+                [target]="draw.status === DrawStatus.SalesOpen ? draw.salesCloseAt : draw.scheduledAt"
+                expiredLabel="Ready to draw" />
+            </div>
+          </div>
+
+          <!-- Number entry -->
+          <div class="console__entry ll-card">
+            <header class="ll-card__header">
+              <div>
+                <h3 class="ll-card__title">Winning numbers</h3>
+                <p class="ll-card__subtitle">
+                  Enter {{ digitCount() }} digits for each prize tier, or generate them automatically.
+                </p>
+              </div>
+              <div class="console__progress">
+                <span class="ll-numeric">{{ progress() }}%</span>
+                <span class="console__progress-track">
+                  <span class="console__progress-fill" [style.width.%]="progress()"></span>
+                </span>
+              </div>
+            </header>
+
+            <div class="ll-card__body">
+              <div class="tiers">
+                @for (tier of tiers(); track tier.tierCode) {
+                  <div class="tier" [class.tier--complete]="entryFor(tier.tierCode).length === digitCount()">
+                    <div class="tier__head">
+                      <span class="tier__name">{{ tier.tierName }}</span>
+                      @if (entryFor(tier.tierCode).length === digitCount()) {
+                        <span class="material-symbols-rounded tier__check" aria-hidden="true">
+                          check_circle
+                        </span>
+                      }
+                    </div>
+
+                    <!-- Digit display over a single input -->
+                    <div class="tier__digits" [class.tier__digits--spinning]="spinning()">
+                      @for (digit of digitsOf(tier.tierCode); track $index) {
+                        <span class="tier__digit" [class.tier__digit--filled]="digit">{{
+                          digit || '·'
+                        }}</span>
+                      }
+                    </div>
+
+                    <input
+                      class="tier__input"
+                      type="text"
+                      inputmode="numeric"
+                      [attr.aria-label]="'Winning number for ' + tier.tierName"
+                      [attr.title]="'Winning number for ' + tier.tierName"
+                      [attr.placeholder]="'Enter ' + digitCount() + ' digits'"
+                      [attr.maxlength]="digitCount()"
+                      [disabled]="draw.status === DrawStatus.Published || spinning()"
+                      [ngModel]="entryFor(tier.tierCode)"
+                      (ngModelChange)="onEntryChange(tier.tierCode, $event)" />
+                  </div>
+                }
+              </div>
+
+              <!-- Controls -->
+              <div class="console__controls">
+                @if (draw.status === DrawStatus.SalesOpen) {
+                  <button mat-flat-button type="button" [disabled]="busy()" (click)="closeSales()">
+                    <span class="material-symbols-rounded" aria-hidden="true">lock</span>
+                    Close ticket sales
+                  </button>
+                  <p class="console__hint">Sales must be closed before numbers can be drawn.</p>
+                } @else {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="spinning() || busy()"
+                    (click)="generate()">
+                    <span class="material-symbols-rounded" [class.ll-spin]="spinning()" aria-hidden="true">
+                      {{ spinning() ? 'progress_activity' : 'casino' }}
+                    </span>
+                    {{ spinning() ? 'Drawing…' : 'Generate (RNG)' }}
+                  </button>
+
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="spinning() || busy()"
+                    (click)="clearEntries()">
+                    <span class="material-symbols-rounded" aria-hidden="true">backspace</span>
+                    Clear
+                  </button>
+
+                  <span class="ll-spacer"></span>
+
+                  <button
+                    mat-flat-button
+                    type="button"
+                    class="console__submit"
+                    [disabled]="!canSubmit() || spinning() || busy()"
+                    (click)="submit()">
+                    <span class="material-symbols-rounded" aria-hidden="true">fact_check</span>
+                    Submit for verification
+                  </button>
+                }
+              </div>
+
+              <!-- Governance notice -->
+              <div class="console__notice">
+                <span class="material-symbols-rounded" aria-hidden="true">gavel</span>
+                <div>
+                  <strong>Draw governance</strong>
+                  <span>
+                    Witnesses on record: {{ draw.verification.witnessNames.join(', ') }}. The submitted result
+                    is checksummed and cannot be edited — only rolled back by a Super Administrator, which is
+                    separately audited.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      }
+    </div>
+  }
+</div>

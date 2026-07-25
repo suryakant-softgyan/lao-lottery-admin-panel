@@ -1,0 +1,159 @@
+<div class="ll-page">
+  @if (loading()) {
+    <ll-skeleton variant="title" />
+    <ll-skeleton variant="card" [count]="2" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel
+      kind="error"
+      title="Draw not found"
+      [message]="message"
+      actionLabel="Back to draws"
+      actionIcon="arrow_back"
+      (action)="onHeaderAction('back')" />
+  } @else if (draw(); as draw) {
+    <ll-page-header
+      [title]="draw.code"
+      eyebrow="Draw Operations"
+      [subtitle]="draw.lotteryName + ' · draw #' + draw.drawNumber"
+      icon="stadia_controller"
+      [compact]="true"
+      [stats]="[
+        { label: 'Tickets', value: draw.ticketsSold.toLocaleString(), icon: 'confirmation_number' },
+        { label: 'Sales', value: (draw.salesAmount | llCurrency: true), icon: 'payments' },
+        { label: 'Winners', value: draw.winnerCount.toLocaleString(), icon: 'emoji_events' },
+        { label: 'Payout', value: (draw.payoutAmount | llCurrency: true), icon: 'redeem' },
+      ]"
+      [actions]="headerActions()"
+      (actionSelected)="onHeaderAction($event)" />
+
+    @if (draw.rollbackReason) {
+      <div class="alert alert--danger" role="alert">
+        <span class="material-symbols-rounded" aria-hidden="true">undo</span>
+        <div>
+          <strong>This draw was rolled back</strong>
+          <span>{{ draw.rollbackReason }}</span>
+        </div>
+      </div>
+    }
+    @if (draw.cancelledReason) {
+      <div class="alert alert--danger" role="alert">
+        <span class="material-symbols-rounded" aria-hidden="true">cancel</span>
+        <div>
+          <strong>This draw was cancelled</strong>
+          <span>{{ draw.cancelledReason }}</span>
+        </div>
+      </div>
+    }
+
+    <!-- Result board -->
+    <section class="result ll-card">
+      <header class="result__head">
+        <div class="result__title">
+          <ll-status-badge [value]="draw.status" [map]="statusMap" />
+          <ll-status-badge [value]="draw.mode" [map]="modeMap" />
+          <ll-status-badge [value]="draw.lotteryType" [map]="typeMap" />
+        </div>
+
+        @if (draw.status === DrawStatus.Scheduled || draw.status === DrawStatus.SalesOpen) {
+          <div class="result__countdown">
+            <span>Draw in</span>
+            <ll-countdown [target]="draw.scheduledAt" [compact]="true" expiredLabel="Drawing now" />
+          </div>
+        }
+      </header>
+
+      @if (draw.winningNumbers.length) {
+        <div class="result__board">
+          @for (tier of draw.winningNumbers; track tier.tierCode) {
+            <article class="result__tier">
+              <span class="result__tier-name">{{ tier.tierName }}</span>
+              <div class="result__balls">
+                @for (digit of tier.numbers[0]?.split('') ?? []; track $index) {
+                  <span class="result__ball">{{ digit }}</span>
+                }
+              </div>
+              <div class="result__tier-meta">
+                <div>
+                  <span>Winners</span>
+                  <strong class="ll-numeric">{{ tier.winnerCount.toLocaleString() }}</strong>
+                </div>
+                <div>
+                  <span>Per winner</span>
+                  <strong class="ll-numeric">{{ tier.prizePerWinner | llCurrency: true }}</strong>
+                </div>
+                <div>
+                  <span>Total</span>
+                  <strong class="ll-numeric">{{ tier.totalPayout | llCurrency: true }}</strong>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="result__pending">
+          <span class="material-symbols-rounded" aria-hidden="true">hourglass_top</span>
+          <div>
+            <strong>Numbers not yet drawn</strong>
+            <span>This draw has not been executed. Open the live studio when sales close.</span>
+          </div>
+          <a mat-flat-button [routerLink]="['/draws/live']" [queryParams]="{ draw: draw.id }">
+            Open live studio
+          </a>
+        </div>
+      }
+    </section>
+
+    <div class="ll-grid ll-grid--2">
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <h3 class="ll-card__title">Draw summary</h3>
+        </header>
+        <div class="ll-card__body">
+          <ll-info-list [items]="summaryItems()" [columns]="1" />
+        </div>
+      </section>
+
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <h3 class="ll-card__title">Financial position</h3>
+        </header>
+        <div class="ll-card__body">
+          <ll-info-list [items]="financialItems()" [columns]="1" />
+        </div>
+      </section>
+    </div>
+
+    <section class="ll-card">
+      <mat-tab-group animationDuration="200ms">
+        <mat-tab label="Verification">
+          <div class="tab-body">
+            <ll-info-list [items]="verificationItems()" [columns]="2" />
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Payout distribution">
+          <div class="tab-body">
+            @if (draw.winningNumbers.length) {
+              <ll-chart
+                type="bar"
+                [labels]="payoutLabels()"
+                [series]="payoutSeries()"
+                [height]="300"
+                [showLegend]="false"
+                [valueFormatter]="currencyFormatter"
+                ariaLabel="Payout by prize tier" />
+            } @else {
+              <ll-state-panel kind="empty" [compact]="true" title="No payout data yet" />
+            }
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Lifecycle">
+          <div class="tab-body">
+            <ll-activity-timeline [events]="timeline()" />
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </section>
+  }
+</div>

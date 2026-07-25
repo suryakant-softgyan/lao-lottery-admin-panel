@@ -1,0 +1,296 @@
+<form [formGroup]="form()" (ngSubmit)="submit()" novalidate>
+  @if (schema().wizard) {
+    <mat-stepper linear="false" class="dyn-stepper">
+      @for (section of sections(); track section.id) {
+        <mat-step [label]="section.title">
+          @if (section.description) {
+            <p class="dyn-section__description">{{ section.description }}</p>
+          }
+          <ng-container
+            [ngTemplateOutlet]="fieldGrid"
+            [ngTemplateOutletContext]="{ $implicit: section.fields }" />
+        </mat-step>
+      }
+    </mat-stepper>
+  } @else {
+    @for (section of sections(); track section.id) {
+      <section class="dyn-section">
+        @if (section.title) {
+          <header class="dyn-section__header">
+            @if (section.icon) {
+              <span class="material-symbols-rounded" aria-hidden="true">{{ section.icon }}</span>
+            }
+            <div>
+              <h3 class="dyn-section__title">{{ section.title }}</h3>
+              @if (section.description) {
+                <p class="dyn-section__description">{{ section.description }}</p>
+              }
+            </div>
+          </header>
+        }
+        <ng-container
+          [ngTemplateOutlet]="fieldGrid"
+          [ngTemplateOutletContext]="{ $implicit: section.fields }" />
+      </section>
+    }
+  }
+
+  @if (showActions()) {
+    <div class="dyn-actions">
+      <button mat-button type="button" (click)="cancelled.emit()" [disabled]="submitting()">
+        {{ cancelLabel() }}
+      </button>
+      <button mat-stroked-button type="button" (click)="reset()" [disabled]="submitting()">
+        <span class="material-symbols-rounded" aria-hidden="true">restart_alt</span>
+        Reset
+      </button>
+      <button mat-flat-button type="submit" [disabled]="submitting()">
+        @if (submitting()) {
+          <span class="material-symbols-rounded ll-spin" aria-hidden="true">progress_activity</span>
+        }
+        {{ submitLabel() }}
+      </button>
+    </div>
+  }
+
+  <!--
+    Shared field renderer, reused by both the flat and wizard layouts.
+
+    It MUST be declared inside the <form>. `formControlName` resolves its
+    ControlContainer from the template's declaration site rather than where
+    ngTemplateOutlet inserts it, so a template declared outside the form has no
+    formGroup in scope and every control throws NG01050 — which aborts the
+    render partway and silently drops the remaining sections.
+  -->
+  <ng-template #fieldGrid let-fields>
+    <div class="dyn-grid">
+      @for (field of fields; track field.key) {
+        @if (isVisible(field)) {
+          <div
+            class="dyn-field ll-field"
+            [class.ll-field--invalid]="showError(field.key)"
+            [style.grid-column]="'span ' + (field.span ?? 6)">
+            @switch (field.type) {
+              @case ('heading') {
+                <h4 class="dyn-heading">{{ field.label }}</h4>
+              }
+              @case ('divider') {
+                <hr class="ll-divider" />
+              }
+              @case ('checkbox') {
+                <mat-checkbox [formControlName]="field.key">{{ field.label }}</mat-checkbox>
+                @if (field.hint) {
+                  <p class="dyn-hint">{{ field.hint }}</p>
+                }
+              }
+              @case ('toggle') {
+                <div class="dyn-toggle">
+                  <div>
+                    <span class="dyn-toggle__label">{{ field.label }}</span>
+                    @if (field.hint) {
+                      <span class="dyn-hint">{{ field.hint }}</span>
+                    }
+                  </div>
+                  <mat-slide-toggle [formControlName]="field.key" [attr.aria-label]="field.label" />
+                </div>
+              }
+              @case ('radio') {
+                <fieldset class="dyn-fieldset">
+                  <legend class="dyn-legend">{{ field.label }}</legend>
+                  <mat-radio-group [formControlName]="field.key" class="dyn-radio-group">
+                    @for (option of field.options ?? []; track option.value) {
+                      <mat-radio-button [value]="option.value">{{ option.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                </fieldset>
+              }
+              @case ('slider') {
+                <label class="dyn-label" [attr.for]="field.key">
+                  {{ field.label }}
+                  <strong class="ll-numeric">{{ control(field.key)?.value }}{{ field.suffix }}</strong>
+                </label>
+                <mat-slider [min]="field.min ?? 0" [max]="field.max ?? 100" [step]="field.step ?? 1" discrete>
+                  <input matSliderThumb [formControlName]="field.key" [id]="field.key" />
+                </mat-slider>
+              }
+              @case ('colour') {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <input
+                    matInput
+                    [formControlName]="field.key"
+                    [placeholder]="field.placeholder ?? '#0b3d91'" />
+                  <span
+                    matSuffix
+                    class="dyn-swatch"
+                    [style.background]="control(field.key)?.value || 'transparent'"></span>
+                  @if (field.hint && !showError(field.key)) {
+                    <mat-hint>{{ field.hint }}</mat-hint>
+                  }
+                  @if (showError(field.key)) {
+                    <mat-error>{{ errorFor(field.key) }}</mat-error>
+                  }
+                </mat-form-field>
+              }
+              @case ('file') {
+                <div class="dyn-upload">
+                  <span class="dyn-label">{{ field.label }}</span>
+                  <label class="dyn-upload__drop">
+                    <input
+                      type="file"
+                      class="ll-visually-hidden"
+                      [accept]="field.accept ?? '*/*'"
+                      [multiple]="field.multiple ?? false"
+                      (change)="onFileSelected(field.key, $event)" />
+                    <span class="material-symbols-rounded" aria-hidden="true">cloud_upload</span>
+                    <span class="dyn-upload__text">
+                      {{ fileName(field.key) || 'Click to browse or drag a file here' }}
+                    </span>
+                    @if (field.hint) {
+                      <span class="dyn-hint">{{ field.hint }}</span>
+                    }
+                  </label>
+                </div>
+              }
+              @case ('select') {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <mat-select [formControlName]="field.key" [placeholder]="field.placeholder ?? ''">
+                    @for (option of field.options ?? []; track option.value) {
+                      <mat-option [value]="option.value" [disabled]="option.disabled ?? false">
+                        {{ option.label }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                  @if (field.icon) {
+                    <span matPrefix class="material-symbols-rounded dyn-affix" aria-hidden="true">
+                      {{ field.icon }}
+                    </span>
+                  }
+                  @if (field.hint && !showError(field.key)) {
+                    <mat-hint>{{ field.hint }}</mat-hint>
+                  }
+                  @if (showError(field.key)) {
+                    <mat-error>{{ errorFor(field.key) }}</mat-error>
+                  }
+                </mat-form-field>
+              }
+              @case ('multiselect') {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <mat-select [formControlName]="field.key" multiple>
+                    @for (option of field.options ?? []; track option.value) {
+                      <mat-option [value]="option.value">{{ option.label }}</mat-option>
+                    }
+                  </mat-select>
+                  @if (field.hint && !showError(field.key)) {
+                    <mat-hint>{{ field.hint }}</mat-hint>
+                  }
+                  @if (showError(field.key)) {
+                    <mat-error>{{ errorFor(field.key) }}</mat-error>
+                  }
+                </mat-form-field>
+              }
+              @case ('date') {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <input matInput [matDatepicker]="picker" [formControlName]="field.key" />
+                  <mat-datepicker-toggle matIconSuffix [for]="picker" />
+                  <mat-datepicker #picker />
+                  @if (field.hint && !showError(field.key)) {
+                    <mat-hint>{{ field.hint }}</mat-hint>
+                  }
+                  @if (showError(field.key)) {
+                    <mat-error>{{ errorFor(field.key) }}</mat-error>
+                  }
+                </mat-form-field>
+              }
+              @case ('textarea') {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <textarea
+                    matInput
+                    [formControlName]="field.key"
+                    [rows]="field.rows ?? 3"
+                    [placeholder]="field.placeholder ?? ''"
+                    [attr.maxlength]="field.maxLength ?? null"></textarea>
+                  @if (field.hint && !showError(field.key)) {
+                    <mat-hint>{{ field.hint }}</mat-hint>
+                  }
+                  @if (showError(field.key)) {
+                    <mat-error>{{ errorFor(field.key) }}</mat-error>
+                  }
+                </mat-form-field>
+              }
+              @default {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <input
+                    matInput
+                    [formControlName]="field.key"
+                    [type]="
+                      field.type === 'password'
+                        ? 'password'
+                        : field.type === 'number' || field.type === 'currency' || field.type === 'percent'
+                          ? 'number'
+                          : field.type === 'email'
+                            ? 'email'
+                            : field.type === 'time'
+                              ? 'time'
+                              : 'text'
+                    "
+                    [placeholder]="field.placeholder ?? ''"
+                    [attr.maxlength]="field.maxLength ?? null"
+                    [attr.min]="field.min ?? null"
+                    [attr.max]="field.max ?? null"
+                    [attr.step]="field.step ?? null"
+                    [readonly]="field.readonly ?? false" />
+
+                  @if (field.icon) {
+                    <span matPrefix class="material-symbols-rounded dyn-affix" aria-hidden="true">
+                      {{ field.icon }}
+                    </span>
+                  }
+                  @if (field.prefix) {
+                    <span matTextPrefix class="dyn-affix-text">{{ field.prefix }}</span>
+                  }
+                  @if (field.suffix) {
+                    <span matTextSuffix class="dyn-affix-text">{{ field.suffix }}</span>
+                  }
+                  @if (field.hint && !showError(field.key)) {
+                    <mat-hint>{{ field.hint }}</mat-hint>
+                  }
+                  @if (showError(field.key)) {
+                    <mat-error>{{ errorFor(field.key) }}</mat-error>
+                  }
+                </mat-form-field>
+
+                @if (field.type === 'password' && field.showStrength) {
+                  <div class="dyn-strength">
+                    <div class="dyn-strength__bars">
+                      @for (step of [0, 1, 2, 3]; track step) {
+                        <span
+                          class="dyn-strength__bar"
+                          [class.dyn-strength__bar--filled]="strength(field.key).score > step"
+                          [style.background]="
+                            strength(field.key).score > step
+                              ? strength(field.key).score <= 1
+                                ? 'var(--ll-danger)'
+                                : strength(field.key).score === 2
+                                  ? 'var(--ll-warning)'
+                                  : 'var(--ll-success)'
+                              : null
+                          "></span>
+                      }
+                    </div>
+                    <span class="dyn-strength__label">{{ strength(field.key).label }}</span>
+                  </div>
+                }
+              }
+            }
+          </div>
+        }
+      }
+    </div>
+  </ng-template>
+</form>

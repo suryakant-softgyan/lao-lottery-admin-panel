@@ -1,0 +1,159 @@
+<div class="ll-page">
+  <ll-page-header
+    title="About & System"
+    eyebrow="Settings"
+    subtitle="Build information, service health, keyboard reference and support contacts."
+    icon="info"
+    [compact]="true"
+    [actions]="[{ id: 'refresh', label: 'Refresh health', icon: 'refresh', variant: 'secondary' }]"
+    (actionSelected)="refreshHealth()" />
+
+  <div class="about">
+    <!-- Build & support -->
+    <div class="about__column">
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">Build information</h3>
+            <p class="ll-card__subtitle">What this deployment is running</p>
+          </div>
+        </header>
+        <div class="ll-card__body">
+          <ll-info-list [items]="buildItems()" [columns]="1" />
+        </div>
+      </section>
+
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <h3 class="ll-card__title">Support</h3>
+        </header>
+        <div class="ll-card__body">
+          <ll-info-list [items]="supportItems()" [columns]="1" />
+        </div>
+      </section>
+
+      <!-- Architecture note -->
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <h3 class="ll-card__title">Data layer</h3>
+        </header>
+        <div class="ll-card__body">
+          <div class="note">
+            <span class="material-symbols-rounded" aria-hidden="true">swap_horiz</span>
+            <div>
+              <strong>Mock services are active</strong>
+              <p>
+                Every screen reads through a repository that already speaks the REST contract. Setting
+                <code>useMockData</code> to <code>false</code> in the environment file switches the whole
+                portal onto the live API — no component or template changes are required.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Health & shortcuts -->
+    <div class="about__column">
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">System health</h3>
+            <p class="ll-card__subtitle">Checked {{ health().checkedAt | llRelative }}</p>
+          </div>
+          <ll-status-badge [value]="health().overall" [map]="healthStateMap" />
+        </header>
+
+        <div class="ll-card__body">
+          <div class="gauges">
+            @for (
+              gauge of [
+                { label: 'CPU', value: health().cpuPercent },
+                { label: 'Memory', value: health().memoryPercent },
+                { label: 'Disk', value: health().diskPercent },
+              ];
+              track gauge.label
+            ) {
+              <div class="gauge">
+                <div class="gauge__head">
+                  <span>{{ gauge.label }}</span>
+                  <strong class="ll-numeric">{{ gauge.value }}%</strong>
+                </div>
+                <div class="gauge__track">
+                  <span
+                    class="gauge__fill"
+                    [style.width.%]="gauge.value"
+                    [class.gauge__fill--warn]="gauge.value > 75"
+                    [class.gauge__fill--danger]="gauge.value > 90"></span>
+                </div>
+              </div>
+            }
+          </div>
+
+          <ul class="components" role="list">
+            @for (component of health().components; track component.id) {
+              <li
+                class="component"
+                [class.component--degraded]="component.state === HealthState.Degraded"
+                [class.component--down]="component.state === HealthState.Down">
+                <span class="material-symbols-rounded" aria-hidden="true">{{ component.icon }}</span>
+                <div class="component__body">
+                  <strong>{{ component.name }}</strong>
+                  <span>{{ component.message }}</span>
+                </div>
+                <div class="component__metrics">
+                  <span class="ll-numeric">{{ component.latencyMs }} ms</span>
+                  <span class="ll-numeric">{{ component.uptimePercent }}%</span>
+                </div>
+              </li>
+            }
+          </ul>
+        </div>
+      </section>
+
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">Keyboard shortcuts</h3>
+            <p class="ll-card__subtitle">Available anywhere in the portal</p>
+          </div>
+        </header>
+        <div class="ll-card__body">
+          <ul class="shortcuts" role="list">
+            @for (shortcut of shortcuts; track shortcut.keys) {
+              <li>
+                <span class="shortcuts__description">{{ shortcut.description }}</span>
+                <span class="shortcuts__scope">{{ shortcut.scope }}</span>
+                <kbd>{{ shortcut.keys }}</kbd>
+              </li>
+            }
+          </ul>
+        </div>
+      </section>
+
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <h3 class="ll-card__title">Quick links</h3>
+        </header>
+        <div class="ll-card__body quick-links">
+          <a mat-stroked-button routerLink="/settings/appearance">
+            <span class="material-symbols-rounded" aria-hidden="true">palette</span>
+            Appearance
+          </a>
+          <a mat-stroked-button routerLink="/settings/feature-flags">
+            <span class="material-symbols-rounded" aria-hidden="true">toggle_on</span>
+            Feature flags
+          </a>
+          <a mat-stroked-button routerLink="/audit">
+            <span class="material-symbols-rounded" aria-hidden="true">gavel</span>
+            Audit trail
+          </a>
+          <a mat-stroked-button routerLink="/reports">
+            <span class="material-symbols-rounded" aria-hidden="true">assessment</span>
+            Reports
+          </a>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

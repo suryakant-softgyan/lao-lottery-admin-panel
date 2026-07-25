@@ -1,0 +1,112 @@
+:host {
+  display: block;
+}
+
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ll-gap);
+  align-items: end;
+
+  &__place {
+    display: grid;
+    justify-items: center;
+    gap: 5px;
+    padding: 20px 16px 16px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+
+    /* Rank colour wash along the top edge. */
+    &::before {
+      content: '';
+      position: absolute;
+      inset-inline: 0;
+      top: 0;
+      height: 3px;
+      background: var(--ll-neutral);
+    }
+
+    &[data-place='1']::before {
+      background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+
+    &[data-place='2']::before {
+      background: linear-gradient(90deg, #94a3b8, #cbd5e1);
+    }
+
+    &[data-place='3']::before {
+      background: linear-gradient(90deg, #b45309, #d97706);
+    }
+
+    &--first {
+      padding-block: 28px 20px;
+      border-color: color-mix(in srgb, #f59e0b 40%, var(--ll-border));
+    }
+  }
+
+  &__medal {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  &__name {
+    margin: 6px 0 0;
+    font-size: 0.98rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  &__meta {
+    margin: 0;
+    font-size: 0.73rem;
+    color: var(--ll-text-muted);
+    text-align: center;
+  }
+
+  &__sales {
+    margin: 6px 0 2px;
+    font-size: 1.32rem;
+    font-weight: 760;
+    letter-spacing: -0.03em;
+    color: var(--ll-primary);
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    margin-top: 6px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      padding: 7px 8px;
+      border-radius: var(--ll-radius-sm);
+      background: var(--ll-surface);
+      border: 1px solid var(--ll-border);
+    }
+
+    span {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ll-text-muted);
+    }
+
+    strong {
+      font-size: 0.82rem;
+      font-weight: 680;
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .podium {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

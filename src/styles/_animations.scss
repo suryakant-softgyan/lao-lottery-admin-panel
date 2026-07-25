@@ -1,0 +1,139 @@
+/* Shared keyframes and entrance helpers. All durations read --ll-duration so
+   the Appearance animation-speed control governs the whole application. */
+
+@keyframes ll-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ll-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ll-slide-in-start {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ll-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ll-shimmer {
+  0% {
+    background-position: -420px 0;
+  }
+  100% {
+    background-position: 420px 0;
+  }
+}
+
+@keyframes ll-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ll-danger) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes ll-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ll-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes ll-count-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ll-animate-fade {
+  animation: ll-fade-in var(--ll-duration) var(--ll-ease) both;
+}
+
+.ll-animate-up {
+  animation: ll-fade-up var(--ll-duration) var(--ll-ease) both;
+}
+
+.ll-animate-scale {
+  animation: ll-scale-in var(--ll-duration) var(--ll-ease) both;
+}
+
+/* Staggers a grid of cards for a polished entrance. */
+.ll-stagger > * {
+  animation: ll-fade-up var(--ll-duration) var(--ll-ease) both;
+
+  @for $index from 1 through 14 {
+    &:nth-child(#{$index}) {
+      animation-delay: #{$index * 35}ms;
+    }
+  }
+}
+
+.ll-pulse {
+  animation: ll-pulse-ring 2s infinite;
+}
+
+.ll-spin {
+  animation: ll-spin 1s linear infinite;
+}
+
+/* Skeleton shimmer used by every loading placeholder. */
+.ll-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--ll-radius-sm);
+  background: color-mix(in srgb, var(--ll-text-muted) 14%, transparent);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0,
+    color-mix(in srgb, var(--ll-surface-elevated) 60%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 420px 100%;
+  background-repeat: no-repeat;
+  animation: ll-shimmer 1.35s infinite linear;
+}

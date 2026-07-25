@@ -1,0 +1,208 @@
+:host {
+  display: block;
+}
+
+.toolbar {
+  padding: 0;
+
+  &__main {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+    padding: 11px 13px;
+  }
+
+  /* ---------------------------------------------------------------- search */
+
+  &__search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 260px;
+    min-width: 210px;
+    max-width: 420px;
+    height: 38px;
+    padding-inline: 34px 30px;
+    border: 1px solid var(--ll-border);
+    border-radius: var(--ll-radius-pill);
+    background: var(--ll-surface);
+    transition:
+      border-color var(--ll-duration) var(--ll-ease),
+      box-shadow var(--ll-duration) var(--ll-ease);
+
+    &:focus-within {
+      border-color: var(--ll-primary);
+      box-shadow: 0 0 0 3px var(--ll-primary-soft);
+    }
+  }
+
+  &__search-icon {
+    position: absolute;
+    inset-inline-start: 11px;
+    font-size: 19px;
+    color: var(--ll-text-muted);
+    pointer-events: none;
+  }
+
+  &__search-input {
+    width: 100%;
+    border: 0;
+    background: none;
+    outline: none;
+    font-size: 0.86rem;
+    color: var(--ll-text);
+
+    &::placeholder {
+      color: var(--ll-text-muted);
+    }
+
+    /* Hide the native clear affordance; we render our own. */
+    &::-webkit-search-cancel-button {
+      display: none;
+    }
+  }
+
+  &__search-clear {
+    position: absolute;
+    inset-inline-end: 8px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    color: var(--ll-text-muted);
+    background: var(--ll-surface-hover);
+
+    .material-symbols-rounded {
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+    }
+
+    &:hover {
+      color: var(--ll-text);
+    }
+  }
+
+  /* ----------------------------------------------------------------- chips */
+
+  &__chip {
+    --mdc-outlined-button-outline-color: var(--ll-border);
+    --mdc-outlined-button-label-text-color: var(--ll-text-secondary);
+
+    height: 38px;
+    border-radius: var(--ll-radius-pill) !important;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+
+    .material-symbols-rounded {
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
+      margin-inline: 0 4px;
+
+      &:last-child {
+        margin-inline: 2px 0;
+        opacity: 0.6;
+      }
+    }
+
+    &--active {
+      --mdc-outlined-button-outline-color: var(--ll-primary);
+      --mdc-outlined-button-label-text-color: var(--ll-primary);
+      background: var(--ll-primary-soft);
+      color: var(--ll-primary);
+    }
+  }
+
+  &__badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    padding-inline: 5px;
+    margin-inline-start: 5px;
+    border-radius: 999px;
+    background: var(--ll-primary);
+    color: var(--ll-primary-contrast);
+    font-size: 0.66rem;
+    font-weight: 700;
+  }
+
+  /* ----------------------------------------------------------------- dates */
+
+  &__dates {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 38px;
+    padding-inline: 10px;
+    border: 1px solid var(--ll-border);
+    border-radius: var(--ll-radius-pill);
+    background: var(--ll-surface);
+
+    &:focus-within {
+      border-color: var(--ll-primary);
+    }
+  }
+
+  &__date {
+    border: 0;
+    background: none;
+    outline: none;
+    font-size: 0.79rem;
+    color: var(--ll-text);
+    color-scheme: light dark;
+    max-width: 122px;
+  }
+
+  &__date-sep {
+    color: var(--ll-text-muted);
+    font-size: 0.8rem;
+  }
+
+  /* -------------------------------------------------------------- controls */
+
+  &__controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-wrap: wrap;
+  }
+
+  &__reset {
+    color: var(--ll-danger);
+    font-size: 0.79rem;
+
+    .material-symbols-rounded {
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
+      margin-inline-end: 4px;
+    }
+  }
+
+  /* -------------------------------------------------------------- advanced */
+
+  &__advanced {
+    padding: 16px 14px;
+    border-top: 1px solid var(--ll-border);
+    background: var(--ll-surface);
+    border-radius: 0 0 var(--ll-radius) var(--ll-radius);
+    animation: ll-fade-up var(--ll-duration-fast, 140ms) var(--ll-ease) both;
+  }
+}
+
+@media (max-width: 720px) {
+  .toolbar__search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .toolbar__controls {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "common": {
+    "actions": {
+      "add": "ເພີ່ມ",
+      "approve": "ອະນຸມັດ",
+      "back": "ກັບຄືນ",
+      "cancel": "ຍົກເລີກ",
+      "clear": "ລ້າງ",
+      "close": "ປິດ",
+      "confirm": "ຢືນຢັນ",
+      "create": "ສ້າງໃໝ່",
+      "delete": "ລຶບ",
+      "download": "ດາວໂຫລດ",
+      "edit": "ແກ້ໄຂ",
+      "export": "ສົ່ງອອກ",
+      "filter": "ກັ່ນຕອງ",
+      "print": "ພິມ",
+      "refresh": "ໂຫລດຄືນ",
+      "reject": "ປະຕິເສດ",
+      "reset": "ຕັ້ງຄືນ",
+      "save": "ບັນທຶກ",
+      "search": "ຄົ້ນຫາ",
+      "submit": "ສົ່ງ",
+      "view": "ເບິ່ງ"
+    },
+    "states": {
+      "loading": "ກຳລັງໂຫລດ…",
+      "empty": "ຍັງບໍ່ມີຂໍ້ມູນ",
+      "noResults": "ບໍ່ພົບຂໍ້ມູນທີ່ກົງກັນ",
+      "error": "ເກີດຂໍ້ຜິດພາດ",
+      "retry": "ລອງໃໝ່",
+      "offline": "ທ່ານອອບໄລນ໌ຢູ່"
+    },
+    "labels": {
+      "status": "ສະຖານະ",
+      "createdAt": "ສ້າງເມື່ອ",
+      "updatedAt": "ອັບເດດເມື່ອ",
+      "actions": "ການດຳເນີນການ",
+      "total": "ລວມ",
+      "all": "ທັງໝົດ",
+      "yes": "ແມ່ນ",
+      "no": "ບໍ່"
+    }
+  },
+  "nav": {
+    "section": {
+      "overview": "ພາບລວມ",
+      "operations": "ການດຳເນີນງານ",
+      "network": "ເຄືອຂ່າຍຈຳໜ່າຍ",
+      "finance": "ການເງິນ",
+      "administration": "ການບໍລິຫານ"
+    },
+    "dashboard": "ໜ້າຫຼັກ",
+    "lottery": "ຫວຍ",
+    "draws": "ການອອກເລກ",
+    "tickets": "ປີ້",
+    "agents": "ຕົວແທນ",
+    "retailers": "ຮ້ານຄ້າ",
+    "wallet": "ກະເປົ໋າເງິນ",
+    "payment": "ການຊຳລະ",
+    "users": "ຜູ້ໃຊ້ງານ",
+    "notifications": "ການແຈ້ງເຕືອນ",
+    "reports": "ລາຍງານ",
+    "audit": "ບັນທຶກກວດສອບ",
+    "settings": "ຕັ້ງຄ່າ",
+    "profile": "ໂປຣໄຟລ໌"
+  },
+  "auth": {
+    "signIn": "ເຂົ້າສູ່ລະບົບ",
+    "signOut": "ອອກຈາກລະບົບ",
+    "username": "ຊື່ຜູ້ໃຊ້ ຫຼື ອີເມວ",
+    "password": "ລະຫັດຜ່ານ",
+    "rememberMe": "ຈື່ຂ້ອຍໄວ້",
+    "forgotPassword": "ລືມລະຫັດຜ່ານ?",
+    "verification": "ການຢືນຢັນສອງຂັ້ນຕອນ",
+    "resetPassword": "ຕັ້ງລະຫັດຜ່ານໃໝ່"
+  },
+  "dashboard": {
+    "title": "ໜ້າຫຼັກການດຳເນີນງານ",
+    "todaysSales": "ຍອດຂາຍມື້ນີ້",
+    "todaysRevenue": "ລາຍຮັບມື້ນີ້",
+    "pendingDraws": "ການອອກເລກທີ່ຄ້າງ",
+    "todaysWinners": "ຜູ້ຖືກລາງວັນມື້ນີ້",
+    "activeUsers": "ຜູ້ໃຊ້ທີ່ເຄື່ອນໄຫວ",
+    "activeAgents": "ຕົວແທນທີ່ເຄື່ອນໄຫວ",
+    "retailers": "ຮ້ານຄ້າ",
+    "ticketsSold": "ປີ້ທີ່ຂາຍໄດ້",
+    "cancelledTickets": "ປີ້ທີ່ຍົກເລີກ",
+    "pendingPayments": "ການຊຳລະທີ່ຄ້າງ",
+    "failedTransactions": "ທຸລະກຳລົ້ມເຫລວ",
+    "walletBalance": "ຍອດເງິນໃນກະເປົ໋າ",
+    "commission": "ຄ່ານາຍໜ້າ"
+  }
+}

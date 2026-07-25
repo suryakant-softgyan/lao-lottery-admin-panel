@@ -1,0 +1,94 @@
+:host {
+  display: block;
+}
+
+.config {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: var(--ll-gap);
+  align-items: start;
+
+  &__picker {
+    overflow: hidden;
+    position: sticky;
+    top: calc(var(--ll-header-height) + 12px);
+  }
+}
+
+.picker {
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+  max-height: 60vh;
+  overflow-y: auto;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 11px;
+    border-radius: var(--ll-radius-sm);
+    text-align: start;
+    color: var(--ll-text);
+    transition: background-color 140ms var(--ll-ease);
+
+    &:hover {
+      background: var(--ll-surface-hover);
+    }
+
+    &--active {
+      background: color-mix(in srgb, var(--game-colour) 12%, transparent);
+      box-shadow: inset 3px 0 0 var(--game-colour);
+    }
+  }
+
+  &__dot {
+    width: 10px;
+    height: 10px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--game-colour);
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__name {
+    font-size: 0.85rem;
+    font-weight: 620;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    font-size: 0.71rem;
+    color: var(--ll-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1000px) {
+  .config {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .config__picker {
+    position: static;
+  }
+
+  .picker {
+    max-height: none;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}

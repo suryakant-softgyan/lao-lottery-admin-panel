@@ -1,0 +1,225 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Validate Ticket"
+    eyebrow="Counter Operations"
+    subtitle="Scan or key a ticket to check whether it can be paid, and settle the prize at the counter."
+    icon="qr_code_scanner"
+    [compact]="true"
+    [actions]="[{ id: 'back', label: 'All tickets', icon: 'confirmation_number', variant: 'secondary' }]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  <div class="validate">
+    <!-- Entry panel -->
+    <section class="scanner ll-card">
+      <div class="scanner__viewport" aria-hidden="true">
+        <div class="scanner__frame">
+          <span class="scanner__corner scanner__corner--tl"></span>
+          <span class="scanner__corner scanner__corner--tr"></span>
+          <span class="scanner__corner scanner__corner--bl"></span>
+          <span class="scanner__corner scanner__corner--br"></span>
+          <span class="scanner__laser"></span>
+          <span class="material-symbols-rounded scanner__glyph">qr_code_2</span>
+        </div>
+      </div>
+
+      <div class="scanner__body">
+        <label class="scanner__label" for="ticket-code">Ticket number, serial or barcode</label>
+        <div class="scanner__input">
+          <span class="material-symbols-rounded" aria-hidden="true">confirmation_number</span>
+          <input
+            id="ticket-code"
+            llAutofocus
+            type="text"
+            placeholder="LL-2026-000123"
+            autocomplete="off"
+            [ngModel]="code()"
+            (ngModelChange)="code.set($event)"
+            (keyup.enter)="validate()" />
+          @if (code()) {
+            <button type="button" aria-label="Clear" (click)="reset()">
+              <span class="material-symbols-rounded" aria-hidden="true">close</span>
+            </button>
+          }
+        </div>
+
+        <div class="scanner__actions">
+          <button mat-flat-button type="button" [disabled]="!code() || checking()" (click)="validate()">
+            @if (checking()) {
+              <span class="material-symbols-rounded ll-spin" aria-hidden="true">progress_activity</span>
+              Checking…
+            } @else {
+              <span class="material-symbols-rounded" aria-hidden="true">search</span>
+              Validate
+            }
+          </button>
+          <button mat-stroked-button type="button" (click)="scan()">
+            <span class="material-symbols-rounded" aria-hidden="true">photo_camera</span>
+            Use scanner
+          </button>
+        </div>
+
+        @if (history().length) {
+          <div class="scanner__history">
+            <span class="scanner__history-label">Recent checks</span>
+            <ul role="list">
+              @for (entry of history(); track entry.at) {
+                <li>
+                  <button type="button" (click)="recheck(entry.code)">
+                    <span class="material-symbols-rounded" [class.ok]="entry.payable" aria-hidden="true">
+                      {{ entry.payable ? 'check_circle' : 'cancel' }}
+                    </span>
+                    <span class="ll-mono">{{ entry.code }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Verdict panel -->
+    <section class="verdict">
+      @if (!result()) {
+        <div class="verdict__idle ll-card">
+          <span class="material-symbols-rounded" aria-hidden="true">qr_code_scanner</span>
+          <h3>Ready to validate</h3>
+          <p>
+            Scan a ticket or key its number. The result shows whether the prize can be paid and the exact
+            amount due after tax.
+          </p>
+        </div>
+      } @else if (result(); as check) {
+        <div
+          class="verdict__card ll-card"
+          [class.verdict__card--payable]="check.payable"
+          [class.verdict__card--blocked]="!check.payable">
+          <header class="verdict__head">
+            <span class="verdict__icon material-symbols-rounded" aria-hidden="true">
+              {{ check.payable ? 'verified' : check.found ? 'gpp_maybe' : 'search_off' }}
+            </span>
+            <div>
+              <h3 class="verdict__title">
+                {{ check.payable ? 'Prize payable' : check.found ? 'Not payable' : 'Ticket not found' }}
+              </h3>
+              @if (check.reason) {
+                <p class="verdict__reason">{{ check.reason }}</p>
+              } @else {
+                <p class="verdict__reason">Verify the claimant's identity before paying.</p>
+              }
+            </div>
+          </header>
+
+          @if (check.ticket; as ticket) {
+            <div class="verdict__amounts">
+              <div>
+                <span>Gross prize</span>
+                <strong class="ll-numeric">{{ check.grossPayout | llCurrency }}</strong>
+              </div>
+              <div>
+                <span>Tax withheld</span>
+                <strong class="ll-numeric verdict__tax">−{{ check.tax | llCurrency }}</strong>
+              </div>
+              <div class="verdict__net">
+                <span>Net payable</span>
+                <strong class="ll-numeric">{{ check.netPayout | llCurrency }}</strong>
+              </div>
+            </div>
+
+            <dl class="verdict__facts">
+              <div>
+                <dt>Ticket</dt>
+                <dd class="ll-mono">{{ ticket.ticketNumber }}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd><ll-status-badge [value]="ticket.status" [map]="statusMap" /></dd>
+              </div>
+              <div>
+                <dt>Claim</dt>
+                <dd><ll-status-badge [value]="ticket.claimStatus" [map]="claimMap" /></dd>
+              </div>
+              <div>
+                <dt>Lottery</dt>
+                <dd>{{ ticket.lotteryName }}</dd>
+              </div>
+              <div>
+                <dt>Draw</dt>
+                <dd class="ll-mono">{{ ticket.drawCode }}</dd>
+              </div>
+              <div>
+                <dt>Numbers</dt>
+                <dd class="ll-mono">
+                  @for (line of ticket.lines; track line.id) {
+                    <span class="verdict__line" [class.verdict__line--won]="line.won">
+                      {{ line.numbers.join('') }}
+                    </span>
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt>Customer</dt>
+                <dd>{{ ticket.customerName }}</dd>
+              </div>
+              <div>
+                <dt>Phone</dt>
+                <dd>{{ ticket.customerPhone }}</dd>
+              </div>
+              <div>
+                <dt>Channel</dt>
+                <dd><ll-status-badge [value]="ticket.channel" [map]="channelMap" [showIcon]="false" /></dd>
+              </div>
+              <div>
+                <dt>Retailer</dt>
+                <dd>{{ ticket.retailerName }}</dd>
+              </div>
+              <div>
+                <dt>Purchased</dt>
+                <dd>{{ ticket.purchasedAt | llDate: 'datetime' }}</dd>
+              </div>
+              <div>
+                <dt>Claim expires</dt>
+                <dd>{{ ticket.expiresAt | llDate }}</dd>
+              </div>
+            </dl>
+
+            <footer class="verdict__actions">
+              <button mat-stroked-button type="button" (click)="openTicket()">
+                <span class="material-symbols-rounded" aria-hidden="true">open_in_new</span>
+                Full ticket record
+              </button>
+              <button mat-stroked-button type="button" (click)="reset()">
+                <span class="material-symbols-rounded" aria-hidden="true">restart_alt</span>
+                Check another
+              </button>
+              <span class="ll-spacer"></span>
+              @if (check.payable && permissions.has(PERMISSIONS.tickets.payout)) {
+                <button
+                  mat-flat-button
+                  type="button"
+                  class="verdict__pay"
+                  [disabled]="paying()"
+                  (click)="payout()">
+                  @if (paying()) {
+                    <span class="material-symbols-rounded ll-spin" aria-hidden="true">progress_activity</span>
+                    Paying…
+                  } @else {
+                    <span class="material-symbols-rounded" aria-hidden="true">paid</span>
+                    Pay {{ check.netPayout | llCurrency }}
+                  }
+                </button>
+              }
+            </footer>
+          } @else {
+            <footer class="verdict__actions">
+              <button mat-stroked-button type="button" (click)="reset()">
+                <span class="material-symbols-rounded" aria-hidden="true">restart_alt</span>
+                Try another code
+              </button>
+            </footer>
+          }
+        </div>
+      }
+    </section>
+  </div>
+</div>

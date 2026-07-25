@@ -1,0 +1,236 @@
+<aside
+  class="sidebar"
+  [class.sidebar--collapsed]="collapsed()"
+  [class.sidebar--overlay]="layout.sidebarIsOverlay()"
+  [class.sidebar--open]="layout.sidebarMobileOpen()"
+  role="navigation"
+  aria-label="Main navigation">
+  <!-- Brand -->
+  <div class="sidebar__brand">
+    <a routerLink="/dashboard" class="sidebar__logo" (click)="onNavigate()">
+      <span class="sidebar__mark" aria-hidden="true">LL</span>
+      @if (!collapsed()) {
+        <span class="sidebar__wordmark">
+          <strong>{{ branding().applicationShortName }}</strong>
+          <small>{{ branding().companyName }}</small>
+        </span>
+      }
+    </a>
+
+    @if (!layout.sidebarIsOverlay()) {
+      <button
+        mat-icon-button
+        type="button"
+        class="sidebar__collapse"
+        [matTooltip]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+        matTooltipPosition="right"
+        [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+        (click)="layout.toggleSidebar()">
+        <span class="material-symbols-rounded" aria-hidden="true">
+          {{ collapsed() ? 'chevron_right' : 'chevron_left' }}
+        </span>
+      </button>
+    } @else {
+      <button
+        mat-icon-button
+        type="button"
+        class="sidebar__collapse"
+        aria-label="Close navigation"
+        (click)="layout.closeMobileSidebar()">
+        <span class="material-symbols-rounded" aria-hidden="true">close</span>
+      </button>
+    }
+  </div>
+
+  <!-- Menu search -->
+  @if (!collapsed()) {
+    <div class="sidebar__search">
+      <span class="material-symbols-rounded" aria-hidden="true">search</span>
+      <input
+        type="search"
+        placeholder="Search menu…"
+        aria-label="Search navigation menu"
+        [ngModel]="nav.search()"
+        (ngModelChange)="nav.setSearch($event)" />
+      @if (nav.search()) {
+        <button type="button" aria-label="Clear menu search" (click)="nav.clearSearch()">
+          <span class="material-symbols-rounded" aria-hidden="true">close</span>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Pinned / favourite shortcuts -->
+  @if (!collapsed() && shortcuts().length && !nav.search()) {
+    <div class="sidebar__shortcuts">
+      <p class="sidebar__section-label">Shortcuts</p>
+      <div class="sidebar__chips">
+        @for (item of shortcuts(); track item.id) {
+          <a
+            class="sidebar__chip"
+            [routerLink]="item.route"
+            [class.sidebar__chip--active]="nav.isLeafActive(item)"
+            (click)="onNavigate()">
+            <span class="material-symbols-rounded" aria-hidden="true">{{ item.icon }}</span>
+            {{ item.label }}
+          </a>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Menu -->
+  <nav class="sidebar__nav">
+    <ul class="sidebar__list" role="list">
+      @for (item of nav.visibleMenu(); track trackItem($index, item)) {
+        @if (item.sectionTitle) {
+          @if (!collapsed()) {
+            <li class="sidebar__section" role="presentation">{{ item.label }}</li>
+          } @else {
+            <li class="sidebar__section-rule" role="presentation" aria-hidden="true"></li>
+          }
+        } @else if (item.children?.length) {
+          <li class="sidebar__group" [class.sidebar__group--open]="nav.isExpanded(item)">
+            <button
+              type="button"
+              class="sidebar__link sidebar__link--group"
+              [class.sidebar__link--active]="nav.isActive(item)"
+              [matTooltip]="collapsed() ? item.label : ''"
+              matTooltipPosition="right"
+              [attr.aria-expanded]="nav.isExpanded(item)"
+              (click)="toggleGroup(item, $event)">
+              <span class="sidebar__icon material-symbols-rounded" aria-hidden="true">{{ item.icon }}</span>
+              @if (!collapsed()) {
+                <span class="sidebar__label">{{ item.label }}</span>
+                @if (groupBadge(item) > 0) {
+                  <span class="sidebar__badge" [class]="'sidebar__badge--' + (item.badge?.tone ?? 'primary')">
+                    {{ groupBadge(item) }}
+                  </span>
+                }
+                <span class="sidebar__chevron material-symbols-rounded" aria-hidden="true">
+                  expand_more
+                </span>
+              } @else if (groupBadge(item) > 0) {
+                <span class="sidebar__dot" aria-hidden="true"></span>
+              }
+            </button>
+
+            @if (nav.isExpanded(item) && !collapsed()) {
+              <ul class="sidebar__sublist" role="list">
+                @for (child of item.children ?? []; track trackItem($index, child)) {
+                  <li>
+                    <a
+                      class="sidebar__link sidebar__link--child"
+                      [routerLink]="child.route"
+                      [class.sidebar__link--active]="nav.isLeafActive(child)"
+                      [attr.aria-current]="nav.isLeafActive(child) ? 'page' : null"
+                      (click)="onNavigate()">
+                      <span class="sidebar__bullet" aria-hidden="true"></span>
+                      <span class="sidebar__label">{{ child.label }}</span>
+                      @if (badgeFor(child) > 0) {
+                        <span
+                          class="sidebar__badge"
+                          [class]="'sidebar__badge--' + (child.badge?.tone ?? 'primary')">
+                          {{ badgeFor(child) }}
+                        </span>
+                      }
+                      <button
+                        type="button"
+                        class="sidebar__star"
+                        [class.sidebar__star--on]="nav.isFavourite(child.id)"
+                        [attr.aria-label]="
+                          nav.isFavourite(child.id) ? 'Remove from favourites' : 'Add to favourites'
+                        "
+                        (click)="onFavourite(child, $event)">
+                        <span class="material-symbols-rounded" aria-hidden="true">
+                          {{ nav.isFavourite(child.id) ? 'star' : 'star_border' }}
+                        </span>
+                      </button>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </li>
+        } @else {
+          <li>
+            <a
+              class="sidebar__link"
+              [routerLink]="item.route"
+              [class.sidebar__link--active]="nav.isLeafActive(item)"
+              [attr.aria-current]="nav.isLeafActive(item) ? 'page' : null"
+              [matTooltip]="collapsed() ? item.label : ''"
+              matTooltipPosition="right"
+              (click)="onNavigate()">
+              <span class="sidebar__icon material-symbols-rounded" aria-hidden="true">{{ item.icon }}</span>
+              @if (!collapsed()) {
+                <span class="sidebar__label">{{ item.label }}</span>
+                @if (badgeFor(item) > 0) {
+                  <span class="sidebar__badge" [class]="'sidebar__badge--' + (item.badge?.tone ?? 'primary')">
+                    {{ badgeFor(item) }}
+                  </span>
+                }
+                <button
+                  type="button"
+                  class="sidebar__star"
+                  [class.sidebar__star--on]="nav.isFavourite(item.id)"
+                  [attr.aria-label]="
+                    nav.isFavourite(item.id) ? 'Remove from favourites' : 'Add to favourites'
+                  "
+                  (click)="onFavourite(item, $event)">
+                  <span class="material-symbols-rounded" aria-hidden="true">
+                    {{ nav.isFavourite(item.id) ? 'star' : 'star_border' }}
+                  </span>
+                </button>
+              }
+            </a>
+          </li>
+        }
+      } @empty {
+        <li class="sidebar__no-results">No menu entries match “{{ nav.search() }}”.</li>
+      }
+    </ul>
+  </nav>
+
+  <!-- Recent pages -->
+  @if (!collapsed() && recent().length && !nav.search()) {
+    <div class="sidebar__recent">
+      <div class="sidebar__recent-head">
+        <p class="sidebar__section-label">Recent</p>
+        <button type="button" class="sidebar__clear" (click)="nav.clearRecent()">Clear</button>
+      </div>
+      <ul role="list">
+        @for (page of recent(); track page.route) {
+          <li>
+            <a [routerLink]="page.route" (click)="onNavigate()">
+              <span class="material-symbols-rounded" aria-hidden="true">{{ page.icon }}</span>
+              {{ page.label }}
+            </a>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  <!-- Footer -->
+  <div class="sidebar__footer">
+    <a
+      class="sidebar__link sidebar__link--muted"
+      routerLink="/settings/about"
+      [matTooltip]="collapsed() ? 'Help & support' : ''"
+      matTooltipPosition="right"
+      (click)="onNavigate()">
+      <span class="sidebar__icon material-symbols-rounded" aria-hidden="true">help</span>
+      @if (!collapsed()) {
+        <span class="sidebar__label">Help &amp; support</span>
+      }
+    </a>
+    @if (!collapsed()) {
+      <p class="sidebar__version">v{{ version }} · {{ environmentName }}</p>
+    }
+  </div>
+</aside>
+
+@if (layout.sidebarIsOverlay() && layout.sidebarMobileOpen()) {
+  <div class="sidebar__scrim" (click)="layout.closeMobileSidebar()" aria-hidden="true"></div>
+}

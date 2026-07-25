@@ -1,0 +1,80 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Lottery Configuration"
+    eyebrow="Operations"
+    subtitle="Sales window, stake limits, exposure caps, tax and commission for each lottery product."
+    icon="tune"
+    [compact]="true"
+    [actions]="[
+      { id: 'back', label: 'Lottery types', icon: 'casino', variant: 'secondary' },
+      { id: 'prizes', label: 'Prize structure', icon: 'emoji_events', variant: 'secondary' },
+    ]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  @if (loading()) {
+    <ll-skeleton variant="card" [count]="2" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel kind="error" [message]="message" [showRetry]="true" (retry)="load()" />
+  } @else {
+    <div class="config">
+      <!-- Product picker -->
+      <aside class="config__picker ll-card">
+        <header class="ll-card__header">
+          <h3 class="ll-card__title">Products</h3>
+        </header>
+        <ul class="picker" role="list">
+          @for (game of games(); track game.id) {
+            <li>
+              <button
+                type="button"
+                class="picker__item"
+                [class.picker__item--active]="selected().id === game.id"
+                [style.--game-colour]="game.colour"
+                (click)="select(game)">
+                <span class="picker__dot" aria-hidden="true"></span>
+                <span class="picker__body">
+                  <span class="picker__name">{{ game.name }}</span>
+                  <span class="picker__meta">
+                    {{ game.digitCount }} digits · {{ game.configuration.openTime }}–{{
+                      game.configuration.closeTime
+                    }}
+                  </span>
+                </span>
+                <ll-status-badge [value]="game.type" [map]="typeMap" [showIcon]="false" />
+              </button>
+            </li>
+          }
+        </ul>
+      </aside>
+
+      <!-- Configuration form -->
+      <section class="config__form ll-card">
+        @if (selected(); as game) {
+          <header class="ll-card__header">
+            <div>
+              <h3 class="ll-card__title">{{ game.name }}</h3>
+              <p class="ll-card__subtitle">{{ game.nameLo }} · {{ game.code }}</p>
+            </div>
+            <ll-status-badge [value]="game.type" [map]="typeMap" />
+          </header>
+
+          <div class="ll-card__body">
+            <ll-dynamic-form
+              [schema]="schema"
+              [value]="model()"
+              [submitting]="saving()"
+              submitLabel="Apply configuration"
+              cancelLabel="Back"
+              (formSubmit)="save($event)"
+              (cancelled)="onHeaderAction('back')" />
+          </div>
+        } @else {
+          <ll-state-panel
+            kind="empty"
+            title="Select a product"
+            message="Choose a lottery product to configure." />
+        }
+      </section>
+    </div>
+  }
+</div>

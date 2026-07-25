@@ -1,0 +1,205 @@
+<div class="ll-page">
+  @if (!definition) {
+    <ll-state-panel
+      kind="no-results"
+      title="Unknown report"
+      message="That report type does not exist."
+      actionLabel="Back to report centre"
+      actionIcon="arrow_back"
+      (action)="onHeaderAction('back')" />
+  } @else {
+    <ll-page-header
+      [title]="definition.title"
+      eyebrow="Analytics"
+      [subtitle]="definition.description"
+      [icon]="definition.icon"
+      [compact]="true"
+      [actions]="[
+        { id: 'back', label: 'Report centre', icon: 'assessment', variant: 'secondary' },
+        { id: 'print', label: 'Print', icon: 'print', variant: 'secondary' },
+        { id: 'refresh', label: 'Run report', icon: 'refresh', variant: 'primary' },
+      ]"
+      (actionSelected)="onHeaderAction($event)" />
+
+    <!-- Filters -->
+    <div class="filters ll-card ll-no-print">
+      <div class="filters__group">
+        <label for="period">Period</label>
+        <select id="period" [ngModel]="period()" (ngModelChange)="period.set($event); run()">
+          @for (option of periods; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filters__group">
+        <label for="grouping">Group by</label>
+        <select id="grouping" [ngModel]="groupBy()" (ngModelChange)="groupBy.set($event); run()">
+          @for (option of groupings; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filters__group">
+        <label for="province">Province</label>
+        <select id="province" [ngModel]="province()" (ngModelChange)="province.set($event); run()">
+          @for (option of provinces; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filters__group">
+        <label for="product">Product</label>
+        <select id="product" [ngModel]="lotteryId()" (ngModelChange)="lotteryId.set($event); run()">
+          @for (option of lotteries; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <span class="ll-spacer"></span>
+
+      <button mat-stroked-button type="button" [matMenuTriggerFor]="chartMenu">
+        <span class="material-symbols-rounded" aria-hidden="true">insert_chart</span>
+        Chart type
+      </button>
+      <mat-menu #chartMenu="matMenu">
+        @for (option of chartTypes; track option.value) {
+          <button mat-menu-item type="button" (click)="chartType.set(option.value)">
+            <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">{{ option.icon }}</span>
+            <span>{{ option.label }}</span>
+          </button>
+        }
+      </mat-menu>
+
+      <button mat-flat-button type="button" [matMenuTriggerFor]="exportMenu">
+        <span class="material-symbols-rounded" aria-hidden="true">download</span>
+        Export
+      </button>
+      <mat-menu #exportMenu="matMenu">
+        <button mat-menu-item type="button" (click)="export(ExportFormat.Excel)">
+          <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">table_view</span>
+          <span>Excel (.xls)</span>
+        </button>
+        <button mat-menu-item type="button" (click)="export(ExportFormat.Csv)">
+          <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">description</span>
+          <span>CSV</span>
+        </button>
+        <button mat-menu-item type="button" (click)="export(ExportFormat.Pdf)">
+          <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>
+          <span>PDF</span>
+        </button>
+        <button mat-menu-item type="button" (click)="export(ExportFormat.Json)">
+          <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">data_object</span>
+          <span>JSON</span>
+        </button>
+      </mat-menu>
+    </div>
+
+    @if (loading()) {
+      <ll-skeleton variant="chart" [count]="8" />
+      <ll-skeleton variant="table" [count]="8" />
+    } @else if (errorMessage(); as message) {
+      <ll-state-panel kind="error" [message]="message" [showRetry]="true" (retry)="run()" />
+    } @else if (result(); as report) {
+      <!-- Totals strip -->
+      @if (totalEntries().length) {
+        <section class="totals ll-card" aria-label="Report totals">
+          @for (total of totalEntries(); track total.key) {
+            <div class="totals__item">
+              <span class="totals__label">{{ total.label }}</span>
+              <strong class="totals__value ll-numeric">
+                {{ formatTotal(total.value, total.currency) }}
+              </strong>
+            </div>
+          }
+        </section>
+      }
+
+      <!-- Chart -->
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">{{ report.title }}</h3>
+            <p class="ll-card__subtitle">
+              {{ report.period }} · generated {{ report.generatedAt.slice(0, 16).replace('T', ' ') }}
+            </p>
+          </div>
+        </header>
+        <div class="ll-card__body">
+          @if (report.labels.length) {
+            <ll-chart
+              [type]="chartType()"
+              [labels]="report.labels"
+              [series]="report.series"
+              [height]="340"
+              [valueFormatter]="currencyFormatter"
+              [ariaLabel]="report.title" />
+          } @else {
+            <ll-state-panel kind="no-results" [compact]="true" />
+          }
+        </div>
+      </section>
+
+      <!-- Data table -->
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">Detail</h3>
+            <p class="ll-card__subtitle">{{ report.rows.length }} row(s)</p>
+          </div>
+        </header>
+
+        <div class="ll-scroll-x">
+          <table class="report-table">
+            <thead>
+              <tr>
+                @for (column of report.columns; track column.key) {
+                  <th scope="col" [style.text-align]="alignment(column.key)">{{ column.label }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of report.rows; track $index) {
+                <tr>
+                  @for (column of report.columns; track column.key) {
+                    <td
+                      [style.text-align]="alignment(column.key)"
+                      [class.ll-numeric]="alignment(column.key) === 'end'">
+                      {{ formatCell(row, column.key) }}
+                    </td>
+                  }
+                </tr>
+              } @empty {
+                <tr>
+                  <td [attr.colspan]="report.columns.length">
+                    <ll-state-panel kind="no-results" [compact]="true" />
+                  </td>
+                </tr>
+              }
+            </tbody>
+            @if (report.rows.length) {
+              <tfoot>
+                <tr>
+                  @for (column of report.columns; track column.key; let first = $first) {
+                    <td [style.text-align]="alignment(column.key)" class="ll-numeric">
+                      @if (first) {
+                        <strong>Total</strong>
+                      } @else if (report.totals[column.key] !== undefined) {
+                        <strong>
+                          {{ formatTotal(report.totals[column.key]!, isCurrencyColumn(column.key)) }}
+                        </strong>
+                      }
+                    </td>
+                  }
+                </tr>
+              </tfoot>
+            }
+          </table>
+        </div>
+      </section>
+    }
+  }
+</div>

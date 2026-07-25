@@ -1,0 +1,103 @@
+<div
+  class="auth"
+  [attr.data-login-theme]="loginTheme()"
+  [style.background-image]="backgroundImage() ? 'url(' + backgroundImage() + ')' : null">
+  <div class="auth__overlay" aria-hidden="true"></div>
+
+  <!-- Utility controls -->
+  <div class="auth__utilities">
+    <button
+      mat-icon-button
+      type="button"
+      class="auth__utility"
+      matTooltip="Language"
+      aria-label="Change language"
+      [matMenuTriggerFor]="languageMenu">
+      <span class="auth__flag" aria-hidden="true">
+        {{ translation.current() === 'lo' ? '🇱🇦' : '🇬🇧' }}
+      </span>
+    </button>
+    <mat-menu #languageMenu="matMenu">
+      @for (language of languages; track language.value) {
+        <button mat-menu-item type="button" (click)="translation.use($any(language.value))">
+          <span aria-hidden="true">{{ language.icon }}</span>
+          <span>{{ language.label }}</span>
+        </button>
+      }
+    </mat-menu>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="auth__utility"
+      matTooltip="Toggle dark mode"
+      aria-label="Toggle dark mode"
+      (click)="toggleMode()">
+      <span class="material-symbols-rounded" aria-hidden="true">{{ modeIcon() }}</span>
+    </button>
+  </div>
+
+  <div class="auth__frame">
+    <!-- Branded showcase panel -->
+    @if (showcase()) {
+      <aside class="auth__showcase">
+        <div class="auth__brand">
+          <span class="auth__mark" aria-hidden="true">LL</span>
+          <div>
+            <strong>{{ branding().applicationName }}</strong>
+            <small>{{ branding().companyName }}</small>
+          </div>
+        </div>
+
+        <div class="auth__pitch">
+          <h1>National lottery operations, under one roof.</h1>
+          <p>
+            Draws, tickets, agents, wallets and settlements — governed, auditable and available across every
+            province.
+          </p>
+        </div>
+
+        <ul class="auth__highlights" role="list">
+          @for (item of highlights; track item.title) {
+            <li>
+              <span class="material-symbols-rounded" aria-hidden="true">{{ item.icon }}</span>
+              <div>
+                <strong>{{ item.title }}</strong>
+                <span>{{ item.text }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+
+        <footer class="auth__showcase-footer">
+          <span>{{ branding().copyright }}</span>
+        </footer>
+      </aside>
+    }
+
+    <!-- Form panel -->
+    <section class="auth__panel">
+      <div class="auth__panel-inner">
+        @if (!showcase()) {
+          <div class="auth__brand auth__brand--centred">
+            <span class="auth__mark" aria-hidden="true">LL</span>
+            <div>
+              <strong>{{ branding().applicationName }}</strong>
+              <small>{{ branding().companyName }}</small>
+            </div>
+          </div>
+        }
+
+        <router-outlet />
+
+        <footer class="auth__panel-footer">
+          <a [href]="'mailto:' + branding().supportEmail">Support</a>
+          <span aria-hidden="true">·</span>
+          <a href="#">Privacy</a>
+          <span aria-hidden="true">·</span>
+          <a href="#">Terms</a>
+        </footer>
+      </div>
+    </section>
+  </div>
+</div>

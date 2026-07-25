@@ -1,0 +1,158 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Coverage Map"
+    eyebrow="Distribution Network"
+    subtitle="Retail density, terminal deployment and daily sales by province — where the network is strong and where it is thin."
+    icon="map"
+    [stats]="[
+      { label: 'Provinces', value: totals().provinces.toString(), icon: 'public' },
+      { label: 'Outlets', value: totals().retailers.toLocaleString(), icon: 'storefront' },
+      { label: 'Terminals', value: totals().devices.toLocaleString(), icon: 'point_of_sale' },
+      { label: 'Sales today', value: (totals().sales | llCurrency: true), icon: 'payments' },
+    ]"
+    [actions]="[{ id: 'back', label: 'Retail shops', icon: 'storefront', variant: 'secondary' }]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  @if (loading()) {
+    <ll-skeleton variant="card" [count]="3" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel kind="error" [message]="message" [showRetry]="true" (retry)="load()" />
+  } @else {
+    <!-- Density grid: the drop-in point for a real tile map later. -->
+    <section class="ll-card map">
+      <header class="ll-card__header">
+        <div>
+          <h3 class="ll-card__title">Provincial coverage</h3>
+          <p class="ll-card__subtitle">
+            Shading reflects retailer density relative to the strongest province
+          </p>
+        </div>
+        <div class="map__legend" aria-hidden="true">
+          <span>Low</span>
+          <span class="map__legend-scale"></span>
+          <span>High</span>
+        </div>
+      </header>
+
+      <div class="ll-card__body">
+        <div class="map__canvas">
+          @for (row of coverage(); track row.province) {
+            <button
+              type="button"
+              class="map__tile"
+              [style.--density]="density(row)"
+              [matTooltip]="
+                row.province +
+                ' — ' +
+                row.retailers +
+                ' outlets, ' +
+                row.devices +
+                ' terminals, ' +
+                row.active +
+                ' active'
+              "
+              (click)="openProvince(row)">
+              <span class="map__tile-name">{{ row.province }}</span>
+              <span class="map__tile-value ll-numeric">{{ row.retailers }}</span>
+              <span class="map__tile-meta">
+                {{ row.devices }} terminals · {{ row.share | llPercent: 1 }}
+              </span>
+              <span class="map__tile-bar">
+                <span class="map__tile-fill" [style.width.%]="(row.active / row.retailers) * 100"></span>
+              </span>
+            </button>
+          }
+        </div>
+
+        <p class="map__note">
+          <span class="material-symbols-rounded" aria-hidden="true">info</span>
+          The bar inside each tile shows the proportion of outlets currently active. Select a province to
+          filter the retailer list.
+        </p>
+      </div>
+    </section>
+
+    <!-- Comparative charts -->
+    <div class="ll-grid ll-grid--2">
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">Outlets and terminals</h3>
+            <p class="ll-card__subtitle">Network footprint by province</p>
+          </div>
+        </header>
+        <div class="ll-card__body">
+          <ll-chart
+            type="horizontalBar"
+            [labels]="chartLabels()"
+            [series]="chartSeries()"
+            [height]="360"
+            [valueFormatter]="countFormatter"
+            ariaLabel="Retail outlets and POS terminals by province" />
+        </div>
+      </section>
+
+      <section class="ll-card">
+        <header class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">Sales today</h3>
+            <p class="ll-card__subtitle">Trading volume by province</p>
+          </div>
+        </header>
+        <div class="ll-card__body">
+          <ll-chart
+            type="horizontalBar"
+            [labels]="chartLabels()"
+            [series]="salesSeries()"
+            [height]="360"
+            [showLegend]="false"
+            [valueFormatter]="currencyFormatter"
+            ariaLabel="Sales today by province" />
+        </div>
+      </section>
+    </div>
+
+    <!-- Detail table -->
+    <section class="ll-card">
+      <header class="ll-card__header">
+        <div>
+          <h3 class="ll-card__title">Province breakdown</h3>
+        </div>
+      </header>
+      <div class="ll-scroll-x">
+        <table class="coverage-table">
+          <thead>
+            <tr>
+              <th scope="col">Province</th>
+              <th scope="col">Outlets</th>
+              <th scope="col">Active</th>
+              <th scope="col">Terminals</th>
+              <th scope="col">Tickets today</th>
+              <th scope="col">Sales today</th>
+              <th scope="col">Network share</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of coverage(); track row.province) {
+              <tr>
+                <th scope="row">{{ row.province }}</th>
+                <td class="ll-numeric">{{ row.retailers }}</td>
+                <td class="ll-numeric">{{ row.active }}</td>
+                <td class="ll-numeric">{{ row.devices }}</td>
+                <td class="ll-numeric">{{ row.ticketsToday.toLocaleString() }}</td>
+                <td class="ll-numeric">{{ row.salesToday | llCurrency: true }}</td>
+                <td class="ll-numeric">{{ row.share | llPercent: 1 }}</td>
+                <td>
+                  <a mat-button [routerLink]="['/retailers']" [queryParams]="{ province: row.province }">
+                    View
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>

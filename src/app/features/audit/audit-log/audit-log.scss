@@ -1,0 +1,191 @@
+:host {
+  display: block;
+}
+
+.audit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ll-gap);
+  align-items: start;
+
+  &--split {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+  }
+
+  &__table {
+    min-width: 0;
+  }
+}
+
+.inspector {
+  position: sticky;
+  top: calc(var(--ll-header-height) + 12px);
+  max-height: calc(100vh - var(--ll-header-height) - 40px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: ll-slide-in-start var(--ll-duration) var(--ll-ease) both;
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 15px 16px;
+    border-bottom: 1px solid var(--ll-border);
+    background: var(--ll-surface);
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+
+    h3 {
+      margin: 0;
+      font-size: 0.94rem;
+      font-weight: 680;
+    }
+
+    p {
+      margin: 1px 0 0;
+      font-size: 0.75rem;
+      color: var(--ll-text-muted);
+    }
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    border-radius: 11px;
+    background: var(--ll-success-soft);
+    color: var(--ll-success);
+    font-size: 20px;
+
+    &--failed {
+      background: var(--ll-danger-soft);
+      color: var(--ll-danger);
+    }
+  }
+
+  &__close {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border-radius: 7px;
+    color: var(--ll-text-muted);
+
+    .material-symbols-rounded {
+      font-size: 18px;
+    }
+
+    &:hover {
+      background: var(--ll-surface-hover);
+      color: var(--ll-text);
+    }
+  }
+
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px 18px;
+  }
+
+  &__section {
+    margin: 20px 0 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+  }
+
+  &__no-diff {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 18px 0 0;
+    padding: 11px 13px;
+    border-radius: var(--ll-radius-sm);
+    background: var(--ll-surface);
+    border: 1px solid var(--ll-border);
+    font-size: 0.78rem;
+    color: var(--ll-text-muted);
+    line-height: 1.5;
+
+    .material-symbols-rounded {
+      font-size: 17px;
+      flex: 0 0 auto;
+    }
+  }
+}
+
+/* Before/after diff — the part that makes an audit trail actionable. */
+.diff {
+  display: grid;
+  gap: 8px;
+
+  &__row {
+    display: grid;
+    gap: 5px;
+    padding: 10px 12px;
+    border-radius: var(--ll-radius-sm);
+    background: var(--ll-surface);
+    border: 1px solid var(--ll-border);
+  }
+
+  &__field {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+  }
+
+  &__values {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+  }
+
+  &__old {
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: var(--ll-danger-soft);
+    color: var(--ll-danger);
+    text-decoration: line-through;
+  }
+
+  &__arrow {
+    font-size: 15px;
+    color: var(--ll-text-muted);
+  }
+
+  &__new {
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: var(--ll-success-soft);
+    color: var(--ll-success);
+    font-weight: 700;
+  }
+}
+
+@media (max-width: 1200px) {
+  .audit--split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inspector {
+    position: static;
+    max-height: none;
+  }
+}

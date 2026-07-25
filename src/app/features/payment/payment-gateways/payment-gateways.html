@@ -1,0 +1,165 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Payment Gateways"
+    eyebrow="Finance"
+    subtitle="Routing priority, success rate and response time for every connected payment provider."
+    icon="hub"
+    [stats]="[{ label: 'Gateways', value: gateways().length.toString(), icon: 'hub' }]"
+    [actions]="[
+      { id: 'back', label: 'Transactions', icon: 'payments', variant: 'secondary' },
+      { id: 'banks', label: 'Banks', icon: 'account_balance', variant: 'primary' },
+    ]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  @if (summary().length) {
+    <section class="ll-grid ll-grid--auto ll-stagger" aria-label="Gateway statistics">
+      @for (metric of summary(); track metric.id) {
+        <ll-stat-card [metric]="metric" [currency]="metric.id === 'volume'" />
+      }
+    </section>
+  }
+
+  @if (loading()) {
+    <ll-skeleton variant="card" [count]="4" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel kind="error" [message]="message" [showRetry]="true" (retry)="load()" />
+  } @else {
+    <section class="gateways ll-stagger">
+      @for (gateway of gateways(); track gateway.id) {
+        <article
+          class="gateway ll-card"
+          [class.gateway--inactive]="gateway.status !== PaymentGatewayStatus.Active">
+          <header class="gateway__head">
+            <div class="gateway__identity">
+              <span class="gateway__priority" aria-hidden="true">{{ gateway.priority }}</span>
+              <div>
+                <h3 class="gateway__name">
+                  {{ gateway.name }}
+                  @if (gateway.sandbox) {
+                    <span class="ll-badge ll-badge--warning">Sandbox</span>
+                  }
+                </h3>
+                <p class="gateway__provider">{{ gateway.provider }} · {{ gateway.code }}</p>
+              </div>
+            </div>
+
+            <div class="gateway__head-actions">
+              <ll-status-badge [value]="gateway.status" [map]="statusMap" />
+              @if (permissions.has(PERMISSIONS.payment.gateways)) {
+                <button
+                  mat-icon-button
+                  type="button"
+                  aria-label="Gateway actions"
+                  [matMenuTriggerFor]="gatewayMenu">
+                  <span class="material-symbols-rounded" aria-hidden="true">more_vert</span>
+                </button>
+                <mat-menu #gatewayMenu="matMenu">
+                  <button
+                    mat-menu-item
+                    type="button"
+                    (click)="setStatus(gateway, PaymentGatewayStatus.Active)">
+                    <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true"
+                      >play_circle</span
+                    >
+                    <span>Set active</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    type="button"
+                    (click)="setStatus(gateway, PaymentGatewayStatus.Maintenance)">
+                    <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">build</span>
+                    <span>Set maintenance</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    type="button"
+                    class="ll-menu-item--danger"
+                    (click)="setStatus(gateway, PaymentGatewayStatus.Inactive)">
+                    <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true"
+                      >power_settings_new</span
+                    >
+                    <span>Deactivate</span>
+                  </button>
+                </mat-menu>
+              }
+            </div>
+          </header>
+
+          <!-- Health bars -->
+          <div class="gateway__health">
+            <div class="health-metric">
+              <div class="health-metric__head">
+                <span>Success rate</span>
+                <strong class="ll-numeric">{{ gateway.successRate | llPercent: 1 }}</strong>
+              </div>
+              <div class="health-metric__track">
+                <span
+                  class="health-metric__fill"
+                  [style.width.%]="gateway.successRate"
+                  [style.background]="'var(--ll-' + healthTone(gateway) + ')'"></span>
+              </div>
+            </div>
+
+            <div class="health-metric">
+              <div class="health-metric__head">
+                <span>Avg response</span>
+                <strong class="ll-numeric" [style.color]="'var(--ll-' + latencyTone(gateway) + ')'">
+                  {{ gateway.avgResponseMs }} ms
+                </strong>
+              </div>
+              <div class="health-metric__track">
+                <span
+                  class="health-metric__fill"
+                  [style.width.%]="(gateway.avgResponseMs / 3000) * 100"
+                  [style.background]="'var(--ll-' + latencyTone(gateway) + ')'"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Volume -->
+          <div class="gateway__volumes">
+            <div>
+              <span>Volume today</span>
+              <strong class="ll-numeric">{{ gateway.volumeToday | llCurrency: true }}</strong>
+            </div>
+            <div>
+              <span>Volume this month</span>
+              <strong class="ll-numeric">{{ gateway.volumeMonth | llCurrency: true }}</strong>
+            </div>
+          </div>
+
+          <!-- Commercials -->
+          <dl class="gateway__facts">
+            <div>
+              <dt>Fee</dt>
+              <dd>{{ gateway.feePercent }}% + {{ gateway.feeFlat | llCurrency }}</dd>
+            </div>
+            <div>
+              <dt>Settlement</dt>
+              <dd>
+                {{ gateway.settlementDays === 0 ? 'Same day' : gateway.settlementDays + ' day(s)' }}
+              </dd>
+            </div>
+            <div>
+              <dt>Currencies</dt>
+              <dd>{{ gateway.currencies.join(', ') }}</dd>
+            </div>
+          </dl>
+
+          <div class="gateway__methods">
+            @for (method of gateway.methods; track method) {
+              <ll-status-badge [value]="method" [map]="methodMap" [showIcon]="true" />
+            }
+          </div>
+
+          <footer class="gateway__footer">
+            <span class="gateway__webhook ll-mono" [matTooltip]="gateway.webhookUrl">
+              <span class="material-symbols-rounded" aria-hidden="true">webhook</span>
+              {{ gateway.webhookUrl }}
+            </span>
+          </footer>
+        </article>
+      }
+    </section>
+  }
+</div>

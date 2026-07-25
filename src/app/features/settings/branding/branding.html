@@ -1,0 +1,119 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Branding & White Label"
+    eyebrow="Settings"
+    subtitle="Rebrand the portal for a different lottery operator — names, imagery, copy, support details and regional formats — without changing code."
+    icon="branding_watermark"
+    [compact]="true"
+    [actions]="[{ id: 'reset', label: 'Reset to defaults', icon: 'restart_alt', variant: 'secondary' }]"
+    (actionSelected)="reset()" />
+
+  <div class="branding">
+    <section class="ll-card">
+      <mat-tab-group animationDuration="200ms">
+        <mat-tab label="Brand identity">
+          <div class="tab">
+            <ll-dynamic-form
+              [schema]="brandingSchema"
+              [value]="brandingModel()"
+              [submitting]="saving()"
+              submitLabel="Apply branding"
+              cancelLabel="Reset"
+              (formSubmit)="saveBranding($event)"
+              (valueChanged)="onBrandingChange($event)"
+              (cancelled)="reset()" />
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Regional formats">
+          <div class="tab">
+            <ll-dynamic-form
+              [schema]="regionalSchema"
+              [value]="regionalModel()"
+              [submitting]="saving()"
+              submitLabel="Apply regional settings"
+              cancelLabel="Cancel"
+              (formSubmit)="saveRegional($event)" />
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </section>
+
+    <!-- Live preview -->
+    <aside class="preview">
+      <div class="preview__card ll-card">
+        <header class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">Live preview</h3>
+            <p class="ll-card__subtitle">Updates as you type</p>
+          </div>
+        </header>
+
+        <div class="preview__body">
+          <!-- Sidebar brand -->
+          <div class="preview__block">
+            <span class="preview__label">Sidebar brand</span>
+            <div class="preview__sidebar">
+              <span class="preview__mark">LL</span>
+              <div>
+                <strong>{{ preview().applicationShortName }}</strong>
+                <small>{{ preview().companyName }}</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Login card -->
+          <div class="preview__block">
+            <span class="preview__label">Login page</span>
+            <div
+              class="preview__login"
+              [style.background-image]="
+                preview().loginBackgroundUrl ? 'url(' + preview().loginBackgroundUrl + ')' : null
+              ">
+              <div class="preview__login-overlay"></div>
+              <div class="preview__login-card">
+                <strong>{{ preview().loginWelcomeTitle }}</strong>
+                <span>{{ preview().loginWelcomeMessage }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dashboard banner -->
+          <div class="preview__block">
+            <span class="preview__label">Dashboard banner</span>
+            <div
+              class="preview__banner"
+              [style.background-image]="
+                preview().dashboardBannerUrl ? 'url(' + preview().dashboardBannerUrl + ')' : null
+              ">
+              <div class="preview__banner-overlay"></div>
+              <span class="preview__banner-text">{{ preview().applicationName }}</span>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="preview__block">
+            <span class="preview__label">Footer</span>
+            <div class="preview__footer">
+              <span>{{ preview().copyright }}</span>
+              <span>{{ preview().footerText }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview__notice ll-card">
+        <span class="material-symbols-rounded" aria-hidden="true">info</span>
+        <div>
+          <strong>Where these apply</strong>
+          <ul>
+            <li>Application name — browser tab, exports and printed report headers.</li>
+            <li>Short name — sidebar wordmark and PWA install prompt.</li>
+            <li>Imagery — login page, dashboard hero and sidebar mark.</li>
+            <li>Regional formats — every date, number and currency, including exports.</li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>

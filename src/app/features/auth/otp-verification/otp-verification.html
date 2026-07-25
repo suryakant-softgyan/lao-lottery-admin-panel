@@ -1,0 +1,79 @@
+<div class="otp">
+  <header class="otp__header">
+    <span class="otp__icon material-symbols-rounded" aria-hidden="true">encrypted</span>
+    <h1 class="otp__title">Two-factor verification</h1>
+    <p class="otp__subtitle">
+      Enter the {{ codeLength }}-digit code sent to <strong>{{ target() }}</strong
+      >.
+    </p>
+  </header>
+
+  @if (isMock && demoCode()) {
+    <div class="otp__demo" role="status">
+      <span class="material-symbols-rounded" aria-hidden="true">science</span>
+      <span>
+        No SMS gateway in mock mode — your code is
+        <strong class="ll-mono">{{ demoCode() }}</strong>
+      </span>
+    </div>
+  }
+
+  @if (errorMessage(); as message) {
+    <div class="otp__error" role="alert">
+      <span class="material-symbols-rounded" aria-hidden="true">error</span>
+      {{ message }}
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <!-- Boxed display over a single hidden control: one value, six affordances. -->
+    <div class="otp__boxes" (click)="codeInput.focus()">
+      @for (index of boxes; track index) {
+        <span
+          class="otp__box"
+          [class.otp__box--filled]="digits()[index]"
+          [class.otp__box--active]="form.controls.code.value.length === index"
+          aria-hidden="true">
+          {{ digits()[index] }}
+        </span>
+      }
+    </div>
+
+    <input
+      #codeInput
+      llAutofocus
+      llNumericOnly
+      type="text"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      class="otp__input"
+      aria-label="Verification code"
+      [attr.maxlength]="codeLength"
+      [value]="form.controls.code.value"
+      (input)="onCodeInput($event)"
+      (paste)="onPaste($event)" />
+
+    <button mat-flat-button type="submit" class="otp__submit" [disabled]="submitting()">
+      @if (submitting()) {
+        <span class="material-symbols-rounded ll-spin" aria-hidden="true">progress_activity</span>
+        Verifying…
+      } @else {
+        Verify and continue
+      }
+    </button>
+  </form>
+
+  <div class="otp__footer">
+    <button type="button" class="otp__resend" [disabled]="cooldown() > 0" (click)="resend()">
+      @if (cooldown() > 0) {
+        Resend code in {{ cooldown() }}s
+      } @else {
+        Resend verification code
+      }
+    </button>
+    <a routerLink="/auth/login" class="otp__back">
+      <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
+      Back to sign in
+    </a>
+  </div>
+</div>

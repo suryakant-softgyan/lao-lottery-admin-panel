@@ -1,0 +1,238 @@
+:host {
+  display: block;
+}
+
+.centre {
+  display: grid;
+  grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+  gap: var(--ll-gap);
+  align-items: start;
+
+  &__rail {
+    overflow: hidden;
+    position: sticky;
+    top: calc(var(--ll-header-height) + 12px);
+  }
+
+  &__feed {
+    display: grid;
+    gap: 22px;
+  }
+}
+
+.rail {
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 11px;
+    border-radius: var(--ll-radius-sm);
+    text-align: start;
+    color: var(--ll-text-secondary);
+    font-size: 0.83rem;
+    transition: background-color 140ms var(--ll-ease);
+
+    .material-symbols-rounded {
+      font-size: 18px;
+      color: var(--ll-text-muted);
+    }
+
+    &:hover {
+      background: var(--ll-surface-hover);
+    }
+
+    &--active {
+      background: var(--ll-primary-soft);
+      color: var(--ll-primary);
+      font-weight: 620;
+
+      .material-symbols-rounded {
+        color: var(--ll-primary);
+      }
+    }
+  }
+
+  &__label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__count {
+    font-size: 0.71rem;
+    font-weight: 700;
+    color: var(--ll-text-muted);
+  }
+
+  &__filter {
+    padding: 10px 12px 12px;
+    border-top: 1px solid var(--ll-border);
+  }
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    font-size: 0.81rem;
+    font-weight: 600;
+    color: var(--ll-text-secondary);
+
+    .material-symbols-rounded {
+      font-size: 22px;
+      color: var(--ll-text-muted);
+    }
+
+    &--on {
+      color: var(--ll-primary);
+
+      .material-symbols-rounded {
+        color: var(--ll-primary);
+      }
+    }
+  }
+}
+
+/* ------------------------------------------------------------------- feed */
+
+.feed-group {
+  &__label {
+    margin: 0 0 9px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+  }
+}
+
+.feed {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 14px 15px;
+  cursor: pointer;
+  transition:
+    transform 150ms var(--ll-ease),
+    border-color 150ms var(--ll-ease);
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--tone) 40%, var(--ll-border));
+  }
+
+  /* Unread items carry a leading accent and a bolder title. */
+  &--unread {
+    border-inline-start: 3px solid var(--tone);
+    background: color-mix(in srgb, var(--tone) 4%, var(--ll-surface-elevated));
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--tone) 14%, transparent);
+    color: var(--tone);
+    font-size: 19px;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+
+  &--unread &__title {
+    font-weight: 720;
+  }
+
+  &__time {
+    font-size: 0.72rem;
+    color: var(--ll-text-muted);
+    white-space: nowrap;
+  }
+
+  &__text {
+    margin: 3px 0 0;
+    font-size: 0.81rem;
+    line-height: 1.55;
+    color: var(--ll-text-secondary);
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 9px;
+    flex-wrap: wrap;
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.76rem;
+    font-weight: 650;
+    color: var(--ll-primary);
+
+    .material-symbols-rounded {
+      font-size: 15px;
+    }
+
+    &:hover {
+      text-decoration: none;
+    }
+  }
+
+  &__dismiss {
+    flex: 0 0 auto;
+    color: var(--ll-text-muted) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .centre {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .centre__rail {
+    position: static;
+  }
+
+  .rail {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}

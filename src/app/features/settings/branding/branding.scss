@@ -1,0 +1,219 @@
+:host {
+  display: block;
+}
+
+.branding {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 380px);
+  gap: var(--ll-gap);
+  align-items: start;
+}
+
+.tab {
+  padding: 22px;
+}
+
+.preview {
+  display: grid;
+  gap: var(--ll-gap);
+  position: sticky;
+  top: calc(var(--ll-header-height) + 12px);
+
+  &__body {
+    display: grid;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  &__block {
+    display: grid;
+    gap: 6px;
+  }
+
+  &__label {
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+  }
+
+  /* --------------------------------------------------------- sidebar */
+
+  &__sidebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 13px;
+    border-radius: var(--ll-radius);
+    background: var(--ll-gradient-sidebar, var(--ll-sidebar));
+    color: var(--ll-sidebar-text);
+
+    div {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+      min-width: 0;
+    }
+
+    strong {
+      font-size: 0.86rem;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    small {
+      font-size: 0.68rem;
+      opacity: 0.78;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__mark {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    border-radius: 10px;
+    background: var(--ll-gradient-primary);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.8rem;
+  }
+
+  /* ----------------------------------------------------------- login */
+
+  &__login {
+    position: relative;
+    height: 130px;
+    border-radius: var(--ll-radius);
+    background-size: cover;
+    background-position: center;
+    background-color: var(--ll-surface);
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+  }
+
+  &__login-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--ll-gradient-hero);
+    opacity: 0.9;
+  }
+
+  &__login-card {
+    position: relative;
+    display: grid;
+    gap: 3px;
+    padding: 12px 14px;
+    border-radius: var(--ll-radius-sm);
+    background: color-mix(in srgb, var(--ll-surface-elevated) 92%, transparent);
+    max-width: 82%;
+    text-align: center;
+
+    strong {
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    span {
+      font-size: 0.72rem;
+      color: var(--ll-text-muted);
+      line-height: 1.45;
+    }
+  }
+
+  /* ---------------------------------------------------------- banner */
+
+  &__banner {
+    position: relative;
+    height: 78px;
+    border-radius: var(--ll-radius);
+    background-size: cover;
+    background-position: center;
+    background-color: var(--ll-surface);
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    padding: 12px;
+  }
+
+  &__banner-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--ll-gradient-hero);
+    opacity: 0.9;
+  }
+
+  &__banner-text {
+    position: relative;
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 720;
+    letter-spacing: -0.02em;
+  }
+
+  /* ---------------------------------------------------------- footer */
+
+  &__footer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: var(--ll-radius-sm);
+    background: var(--ll-surface);
+    border: 1px solid var(--ll-border);
+    font-size: 0.72rem;
+    color: var(--ll-text-muted);
+  }
+
+  /* ---------------------------------------------------------- notice */
+
+  &__notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 15px 17px;
+
+    > .material-symbols-rounded {
+      font-size: 21px;
+      color: var(--ll-info);
+      flex: 0 0 auto;
+    }
+
+    strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.84rem;
+    }
+
+    ul {
+      margin: 0;
+      padding-inline-start: 17px;
+      display: grid;
+      gap: 3px;
+    }
+
+    li {
+      font-size: 0.76rem;
+      line-height: 1.55;
+      color: var(--ll-text-secondary);
+    }
+  }
+}
+
+@media (max-width: 1200px) {
+  .branding {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .preview {
+    position: static;
+  }
+}

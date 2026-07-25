@@ -1,0 +1,339 @@
+<div class="table-shell ll-card" [class.table-shell--loading]="loading()">
+  <!-- Bulk-action bar: replaces the column menu while rows are selected. -->
+  @if (selectable() && selectedCount() > 0) {
+    <div class="bulk-bar" role="region" aria-label="Bulk actions">
+      <div class="bulk-bar__count">
+        <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
+        <strong>{{ selectedCount() }}</strong>
+        <span>{{ selectedCount() === 1 ? 'row selected' : 'rows selected' }}</span>
+      </div>
+
+      <div class="bulk-bar__actions">
+        @for (action of resolvedBulkActions(); track action.id) {
+          <button
+            mat-stroked-button
+            type="button"
+            class="bulk-bar__button"
+            [class]="'bulk-bar__button bulk-bar__button--' + (action.tone ?? 'primary')"
+            (click)="runBulkAction(action)">
+            <span class="material-symbols-rounded" aria-hidden="true">{{ action.icon }}</span>
+            {{ action.label }}
+          </button>
+        }
+        <button mat-button type="button" (click)="clearSelection()">Clear</button>
+      </div>
+    </div>
+  }
+
+  <!-- Column controls -->
+  <div class="table-toolbar">
+    <span class="table-toolbar__meta">
+      @if (page(); as data) {
+        Showing
+        <strong>{{ data.content.length }}</strong>
+        of
+        <strong class="ll-numeric">{{ data.totalElements.toLocaleString() }}</strong>
+        record{{ data.totalElements === 1 ? '' : 's' }}
+      }
+    </span>
+
+    <div class="table-toolbar__controls">
+      <button
+        mat-icon-button
+        type="button"
+        matTooltip="Choose columns"
+        aria-label="Choose columns"
+        [matMenuTriggerFor]="columnMenu">
+        <span class="material-symbols-rounded" aria-hidden="true">view_column</span>
+      </button>
+
+      <mat-menu #columnMenu="matMenu" class="column-menu">
+        <div class="column-menu__header" (click)="$event.stopPropagation()">
+          <span>Visible columns</span>
+          <button mat-button type="button" (click)="showAllColumns()">Show all</button>
+        </div>
+        <mat-divider />
+        @for (column of toggleableColumns(); track column.key) {
+          <button mat-menu-item type="button" (click)="toggleColumn(column.key); $event.stopPropagation()">
+            <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">
+              {{ isColumnVisible(column.key) ? 'check_box' : 'check_box_outline_blank' }}
+            </span>
+            <span>{{ column.label }}</span>
+          </button>
+        }
+        <mat-divider />
+        <button mat-menu-item type="button" (click)="resetLayout()">
+          <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">restart_alt</span>
+          <span>Reset layout</span>
+        </button>
+      </mat-menu>
+    </div>
+  </div>
+
+  @if (loading() && !page()) {
+    <div class="table-shell__body">
+      <ll-skeleton variant="table" [count]="8" />
+    </div>
+  } @else if (error(); as message) {
+    <ll-state-panel kind="error" [message]="message" [showRetry]="true" (retry)="retry.emit()" />
+  } @else if (rows().length === 0) {
+    <ll-state-panel
+      [kind]="filtered() ? 'no-results' : 'empty'"
+      [title]="filtered() ? '' : emptyTitle()"
+      [message]="filtered() ? '' : emptyMessage()" />
+  } @else {
+    @if (loading()) {
+      <mat-progress-bar mode="indeterminate" class="table-shell__progress" />
+    }
+
+    <div class="table-scroll" [class.table-scroll--sticky]="stickyHeader()">
+      <table class="table" [attr.aria-rowcount]="page()?.totalElements ?? rows().length">
+        <thead cdkDropList cdkDropListOrientation="horizontal" (cdkDropListDropped)="onColumnDrop($event)">
+          <tr>
+            @if (selectable()) {
+              <th class="cell--control cell--sticky-start" scope="col">
+                <mat-checkbox
+                  [checked]="allSelected()"
+                  [indeterminate]="someSelected()"
+                  (change)="toggleAll()"
+                  aria-label="Select all rows on this page" />
+              </th>
+            }
+
+            @if (expandable()) {
+              <th class="cell--control" scope="col">
+                <span class="ll-visually-hidden">Expand</span>
+              </th>
+            }
+
+            @for (column of visibleColumns(); track trackColumn($index, column)) {
+              <th
+                cdkDrag
+                [cdkDragDisabled]="column.locked === true"
+                scope="col"
+                llResizableColumn
+                (widthChange)="onColumnResize(column.key, $event)"
+                [class]="'cell cell--' + alignment(column) + ' ' + stickyClass(column)"
+                [class.cell--sorted]="isSorted(column)"
+                [class.cell--sortable]="column.sortable !== false"
+                [style.width.px]="column.width"
+                [style.min-width.px]="column.minWidth ?? column.width"
+                [attr.aria-sort]="
+                  isSorted(column) ? (sort().direction === 'asc' ? 'ascending' : 'descending') : 'none'
+                "
+                (click)="toggleSort(column)">
+                <span class="cell__header">
+                  {{ column.label }}
+                  @if (column.sortable !== false) {
+                    <span class="cell__sort material-symbols-rounded" aria-hidden="true">
+                      {{ sortIcon(column) }}
+                    </span>
+                  }
+                </span>
+              </th>
+            }
+
+            @if (resolvedRowActions().length) {
+              <th class="cell--actions cell--sticky-end" scope="col">
+                <span class="ll-visually-hidden">Actions</span>
+              </th>
+            }
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (row of rows(); track trackRow($index, row)) {
+            <tr
+              class="table__row"
+              [class.table__row--selected]="isSelected(row)"
+              [class.table__row--clickable]="clickableRows()"
+              (click)="onRowClick(row)"
+              (contextmenu)="contextRow.set(row)">
+              @if (selectable()) {
+                <td class="cell--control cell--sticky-start" (click)="$event.stopPropagation()">
+                  <mat-checkbox
+                    [checked]="isSelected(row)"
+                    (change)="toggleRow(row)"
+                    [attr.aria-label]="'Select row ' + row.id" />
+                </td>
+              }
+
+              @if (expandable()) {
+                <td class="cell--control">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="expand-button"
+                    [class.expand-button--open]="isExpanded(row)"
+                    [attr.aria-expanded]="isExpanded(row)"
+                    aria-label="Toggle row details"
+                    (click)="toggleExpanded(row, $event)">
+                    <span class="material-symbols-rounded" aria-hidden="true">expand_more</span>
+                  </button>
+                </td>
+              }
+
+              @for (column of visibleColumns(); track trackColumn($index, column)) {
+                <td
+                  [class]="
+                    'cell cell--' +
+                    alignment(column) +
+                    ' ' +
+                    stickyClass(column) +
+                    ' ' +
+                    (column.cellClass?.(row) ?? '')
+                  "
+                  [attr.title]="column.tooltip?.(row) ?? null">
+                  @switch (column.type) {
+                    @case ('badge') {
+                      <ll-status-badge
+                        [value]="$any(rawValue(row, column))"
+                        [map]="column.badgeMap ?? null" />
+                    }
+                    @case ('avatar') {
+                      <div class="cell__identity">
+                        <ll-avatar
+                          [name]="displayValue(row, column)"
+                          [src]="column.avatarUrl?.(row) ?? null"
+                          [size]="32" />
+                        <div class="cell__identity-text">
+                          <span class="cell__identity-name">{{ displayValue(row, column) }}</span>
+                          @if (column.subLabel?.(row); as sub) {
+                            <span class="cell__identity-sub">{{ sub }}</span>
+                          }
+                        </div>
+                      </div>
+                    }
+                    @case ('chips') {
+                      <span class="cell__chips">
+                        @for (chip of chipValues(row, column); track chip) {
+                          <span class="ll-badge ll-badge--neutral">{{ chip }}</span>
+                        } @empty {
+                          <span class="cell__muted">—</span>
+                        }
+                      </span>
+                    }
+                    @case ('progress') {
+                      <div class="cell__progress">
+                        <div class="cell__progress-track">
+                          <span
+                            class="cell__progress-fill"
+                            [style.width.%]="progressValue(row, column)"></span>
+                        </div>
+                        <span class="ll-numeric">{{ displayValue(row, column) }}</span>
+                      </div>
+                    }
+                    @case ('boolean') {
+                      <span
+                        class="material-symbols-rounded cell__boolean"
+                        [class.cell__boolean--yes]="rawValue(row, column)"
+                        aria-hidden="true">
+                        {{ rawValue(row, column) ? 'check_circle' : 'cancel' }}
+                      </span>
+                    }
+                    @case ('icon') {
+                      <span class="material-symbols-rounded" aria-hidden="true">
+                        {{ displayValue(row, column) }}
+                      </span>
+                    }
+                    @case ('link') {
+                      @if (column.routerLink?.(row); as link) {
+                        <a [routerLink]="link" (click)="$event.stopPropagation()">
+                          {{ displayValue(row, column) }}
+                        </a>
+                      } @else {
+                        {{ displayValue(row, column) }}
+                      }
+                    }
+                    @default {
+                      <span
+                        [class.ll-numeric]="
+                          column.type === 'number' || column.type === 'currency' || column.type === 'percent'
+                        ">
+                        {{ displayValue(row, column) }}
+                      </span>
+                      @if (column.subLabel?.(row); as sub) {
+                        <span class="cell__sub">{{ sub }}</span>
+                      }
+                    }
+                  }
+                </td>
+              }
+
+              @if (resolvedRowActions().length) {
+                <td class="cell--actions cell--sticky-end" (click)="$event.stopPropagation()">
+                  <div class="row-actions">
+                    @for (action of primaryActions(row); track action.id) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [matTooltip]="action.label"
+                        [disabled]="action.disabled?.(row) ?? false"
+                        [class]="'row-actions__icon row-actions__icon--' + (action.tone ?? 'primary')"
+                        [attr.aria-label]="action.label"
+                        (click)="runRowAction(action, row, $event)">
+                        <span class="material-symbols-rounded" aria-hidden="true">{{ action.icon }}</span>
+                        <!-- Discernible text for assistive tech and static a11y checks. -->
+                        <span class="ll-visually-hidden">{{ action.label }}</span>
+                      </button>
+                    }
+
+                    @if (menuActions(row).length) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        aria-label="More actions"
+                        [matMenuTriggerFor]="rowMenu">
+                        <span class="material-symbols-rounded" aria-hidden="true">more_vert</span>
+                      </button>
+                      <mat-menu #rowMenu="matMenu">
+                        @for (action of menuActions(row); track action.id) {
+                          @if (action.divider) {
+                            <mat-divider />
+                          }
+                          <button
+                            mat-menu-item
+                            type="button"
+                            [disabled]="action.disabled?.(row) ?? false"
+                            [class.ll-menu-item--danger]="action.tone === 'danger'"
+                            (click)="runRowAction(action, row, $event)">
+                            <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">{{
+                              action.icon
+                            }}</span>
+                            <span>{{ action.label }}</span>
+                          </button>
+                        }
+                      </mat-menu>
+                    }
+                  </div>
+                </td>
+              }
+            </tr>
+
+            @if (expandable() && isExpanded(row)) {
+              <tr class="table__detail-row">
+                <td [attr.colspan]="displayedKeys().length">
+                  <div class="table__detail">
+                    <ng-content select="[rowDetail]" />
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (showPaginator() && page(); as data) {
+      <mat-paginator
+        class="table-shell__paginator"
+        [length]="data.totalElements"
+        [pageSize]="data.size"
+        [pageIndex]="data.page"
+        [pageSizeOptions]="$any(pageSizeOptions())"
+        [showFirstLastButtons]="true"
+        aria-label="Select page"
+        (page)="onPage($event)" />
+    }
+  }
+</div>

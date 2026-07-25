@@ -1,0 +1,50 @@
+<a class="ll-skip-link" href="#main-content">Skip to main content</a>
+
+<div class="shell">
+  @if (layout.showSidebar()) {
+    <ll-sidebar />
+  }
+
+  <div
+    class="shell__main"
+    [style.margin-inline-start.px]="contentOffset()"
+    [class.shell__main--full]="!layout.showSidebar()">
+    <ll-header />
+
+    @if (loading.loading()) {
+      <mat-progress-bar mode="indeterminate" class="shell__progress" />
+    }
+
+    <main id="main-content" class="shell__content" tabindex="-1">
+      <router-outlet />
+    </main>
+
+    @if (showFooter()) {
+      <ll-footer />
+    }
+  </div>
+</div>
+
+<!-- Idle warning: an overlay rather than a dialog so it cannot be missed. -->
+@if (session.warningVisible()) {
+  <div class="idle" role="alertdialog" aria-modal="true" aria-labelledby="idle-title">
+    <div class="idle__card">
+      <span class="idle__icon material-symbols-rounded" aria-hidden="true">hourglass_bottom</span>
+      <h2 id="idle-title" class="idle__title">Are you still there?</h2>
+      <p class="idle__message">
+        For security, your session will end automatically after a period of inactivity.
+      </p>
+      <p class="idle__countdown ll-numeric">{{ session.remainingLabel() }}</p>
+      <div class="idle__actions">
+        <button mat-stroked-button type="button" (click)="session.endSession()">Sign out now</button>
+        <button mat-flat-button type="button" (click)="session.extend()">Stay signed in</button>
+      </div>
+    </div>
+  </div>
+}
+
+<ll-toast-host />
+
+@if (layout.isCommandPaletteOpen()) {
+  <ll-command-palette />
+}

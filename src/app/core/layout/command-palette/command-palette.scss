@@ -1,0 +1,297 @@
+:host {
+  display: contents;
+}
+
+.palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--ll-scrim);
+  backdrop-filter: blur(3px);
+  animation: ll-fade-in var(--ll-duration-fast, 140ms) var(--ll-ease) both;
+}
+
+.palette {
+  position: fixed;
+  z-index: 61;
+  top: 12vh;
+  inset-inline: 0;
+  margin-inline: auto;
+  width: min(680px, 94vw);
+  max-height: 74vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ll-surface-elevated);
+  border: 1px solid var(--ll-border);
+  border-radius: var(--ll-radius-lg);
+  box-shadow: var(--ll-shadow-lg);
+  overflow: hidden;
+  animation: ll-scale-in var(--ll-duration) var(--ll-ease) both;
+
+  /* ----------------------------------------------------------------- search */
+
+  &__search {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--ll-border);
+    flex: 0 0 auto;
+
+    /* The palette's only text control, and the global focus ring skips text
+       entry — so the focused state has to be drawn here, as it is on every
+       other hand-rolled search box. */
+    &:focus-within {
+      border-bottom-color: var(--ll-primary);
+      box-shadow: inset 0 -2px 0 var(--ll-primary);
+    }
+
+    > .material-symbols-rounded {
+      font-size: 22px;
+      color: var(--ll-text-muted);
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      background: none;
+      outline: none;
+      font-size: 1rem;
+      color: var(--ll-text);
+
+      &::placeholder {
+        color: var(--ll-text-muted);
+      }
+    }
+  }
+
+  &__close kbd {
+    padding: 3px 7px;
+    border-radius: 5px;
+    border: 1px solid var(--ll-border);
+    border-bottom-width: 2px;
+    background: var(--ll-surface);
+    color: var(--ll-text-muted);
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  /* ------------------------------------------------------------------ body */
+
+  &__body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 6px 0;
+  }
+
+  &__section {
+    padding: 4px 0 8px;
+
+    & + & {
+      border-top: 1px solid color-mix(in srgb, var(--ll-border) 60%, transparent);
+    }
+  }
+
+  &__section-title {
+    margin: 0;
+    padding: 8px 18px 5px;
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 16px;
+    text-align: start;
+    color: var(--ll-text);
+    transition: background-color 110ms var(--ll-ease);
+
+    &:hover,
+    &--active {
+      background: var(--ll-primary-soft);
+    }
+
+    &--active {
+      box-shadow: inset 3px 0 0 var(--ll-primary);
+    }
+
+    kbd {
+      padding: 2px 6px;
+      border-radius: 5px;
+      border: 1px solid var(--ll-border);
+      background: var(--ll-surface);
+      color: var(--ll-text-muted);
+      font-family: inherit;
+      font-size: 0.66rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+  }
+
+  &__item-icon {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    background: var(--ll-surface-hover);
+    color: var(--ll-text-secondary);
+    font-size: 17px;
+  }
+
+  &__item--active &__item-icon {
+    background: var(--ll-primary);
+    color: var(--ll-primary-contrast);
+  }
+
+  &__item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__item-title {
+    font-size: 0.87rem;
+    font-weight: 570;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__item-sub {
+    font-size: 0.74rem;
+    color: var(--ll-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__item-hint {
+    flex: 0 0 auto;
+    font-size: 0.71rem;
+    color: var(--ll-text-muted);
+    font-weight: 600;
+  }
+
+  /* ---------------------------------------------------------------- states */
+
+  &__empty {
+    display: grid;
+    justify-items: center;
+    gap: 5px;
+    padding: 44px 20px;
+    text-align: center;
+
+    .material-symbols-rounded {
+      font-size: 34px;
+      color: var(--ll-text-muted);
+    }
+
+    p {
+      margin: 4px 0 0;
+      font-weight: 600;
+      color: var(--ll-text);
+    }
+
+    small {
+      color: var(--ll-text-muted);
+      font-size: 0.77rem;
+    }
+  }
+
+  &__shortcuts {
+    margin: 0;
+    padding: 0 16px 8px;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 2px;
+      border-bottom: 1px dashed color-mix(in srgb, var(--ll-border) 70%, transparent);
+
+      &:last-child {
+        border-bottom: 0;
+      }
+    }
+
+    kbd {
+      margin-inline-start: auto;
+      padding: 3px 8px;
+      border-radius: 5px;
+      border: 1px solid var(--ll-border);
+      border-bottom-width: 2px;
+      background: var(--ll-surface);
+      font-family: inherit;
+      font-size: 0.7rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+  }
+
+  &__shortcut-desc {
+    font-size: 0.84rem;
+  }
+
+  &__shortcut-scope {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+  }
+
+  /* ---------------------------------------------------------------- footer */
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 9px 16px;
+    border-top: 1px solid var(--ll-border);
+    background: var(--ll-surface);
+    font-size: 0.71rem;
+    color: var(--ll-text-muted);
+    flex: 0 0 auto;
+
+    kbd {
+      display: inline-grid;
+      place-items: center;
+      min-width: 19px;
+      height: 19px;
+      padding-inline: 4px;
+      margin-inline-end: 3px;
+      border-radius: 4px;
+      border: 1px solid var(--ll-border);
+      background: var(--ll-surface-elevated);
+      font-family: inherit;
+      font-size: 0.66rem;
+      font-weight: 700;
+    }
+
+    button {
+      font-size: 0.71rem;
+      font-weight: 600;
+      color: var(--ll-primary);
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .palette {
+    top: 4vh;
+    max-height: 88vh;
+  }
+}

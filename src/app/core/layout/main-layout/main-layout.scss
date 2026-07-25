@@ -1,0 +1,111 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.shell {
+  min-height: 100vh;
+  background: var(--ll-background);
+
+  &__main {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-width: 0;
+    transition: margin var(--ll-duration) var(--ll-ease);
+  }
+
+  &__progress {
+    position: sticky;
+    top: var(--ll-header-height);
+    z-index: 29;
+  }
+
+  &__content {
+    flex: 1 1 auto;
+    min-width: 0;
+    outline: none;
+  }
+}
+
+/* Boxed content width centres the page and caps its width. */
+:root[data-content-width='boxed'] .shell__content {
+  max-width: 1480px;
+  margin-inline: auto;
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------- idle */
+
+.idle {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--ll-scrim);
+  backdrop-filter: blur(4px);
+  animation: ll-fade-in var(--ll-duration) var(--ll-ease) both;
+
+  &__card {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    width: min(420px, 94vw);
+    padding: 30px 26px 24px;
+    text-align: center;
+    background: var(--ll-surface-elevated);
+    border: 1px solid var(--ll-border);
+    border-radius: var(--ll-radius-lg);
+    box-shadow: var(--ll-shadow-lg);
+    animation: ll-scale-in var(--ll-duration) var(--ll-ease) both;
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--ll-warning-soft);
+    color: var(--ll-warning);
+    font-size: 28px;
+  }
+
+  &__title {
+    margin: 6px 0 0;
+    font-size: 1.12rem;
+    font-weight: 700;
+  }
+
+  &__message {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--ll-text-secondary);
+  }
+
+  &__countdown {
+    margin: 8px 0 4px;
+    font-size: 2rem;
+    font-weight: 760;
+    letter-spacing: -0.04em;
+    color: var(--ll-warning);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 9px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 959px) {
+  .shell__main {
+    margin-inline-start: 0 !important;
+  }
+}

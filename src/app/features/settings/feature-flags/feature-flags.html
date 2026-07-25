@@ -1,0 +1,86 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Feature Flags"
+    eyebrow="Settings"
+    subtitle="Enable or disable capabilities without a deployment. Changes take effect immediately across the portal."
+    icon="toggle_on"
+    [compact]="true"
+    [actions]="[{ id: 'reset', label: 'Reset all flags', icon: 'restart_alt', variant: 'secondary' }]"
+    (actionSelected)="reset()" />
+
+  <section class="ll-grid ll-grid--auto ll-stagger" aria-label="Feature flag statistics">
+    @for (metric of summary(); track metric.id) {
+      <ll-stat-card [metric]="metric" />
+    }
+  </section>
+
+  <div class="search-bar ll-card">
+    <span class="material-symbols-rounded" aria-hidden="true">search</span>
+    <input
+      type="search"
+      placeholder="Filter flags by name, key or description…"
+      aria-label="Filter feature flags"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)" />
+  </div>
+
+  @for (group of groups(); track group.module) {
+    <section class="flag-group">
+      <h3 class="flag-group__label">{{ group.module }}</h3>
+
+      <div class="flags">
+        @for (flag of group.items; track flag.key) {
+          <article class="flag ll-card" [class.flag--off]="!flag.enabled">
+            <div class="flag__body">
+              <div class="flag__head">
+                <h4 class="flag__name">{{ flag.name }}</h4>
+                @if (flag.roles.length) {
+                  <span
+                    class="ll-badge ll-badge--warning"
+                    [matTooltip]="'Limited to: ' + flag.roles.join(', ')">
+                    <span class="material-symbols-rounded" aria-hidden="true">lock_person</span>
+                    Role-scoped
+                  </span>
+                }
+              </div>
+
+              <p class="flag__description">{{ flag.description }}</p>
+              <code class="flag__key">{{ flag.key }}</code>
+
+              <div class="flag__meta">
+                <span> Updated {{ flag.updatedAt | llRelative }} by {{ flag.updatedBy }} </span>
+              </div>
+
+              @if (flag.enabled) {
+                <div class="flag__rollout">
+                  <label [for]="'rollout-' + flag.key">
+                    Rollout
+                    <strong class="ll-numeric">{{ flag.rolloutPercent }}%</strong>
+                  </label>
+                  <input
+                    [id]="'rollout-' + flag.key"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    [value]="flag.rolloutPercent"
+                    (input)="setRollout(flag, +$any($event.target).value)" />
+                </div>
+              }
+            </div>
+
+            <mat-slide-toggle
+              class="flag__toggle"
+              [checked]="flag.enabled"
+              (change)="toggle(flag)"
+              [attr.aria-label]="'Toggle ' + flag.name" />
+          </article>
+        }
+      </div>
+    </section>
+  } @empty {
+    <div class="ll-card">
+      <p class="flags__empty">No feature flags match “{{ search() }}”.</p>
+    </div>
+  }
+</div>

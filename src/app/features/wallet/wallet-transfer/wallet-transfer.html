@@ -1,0 +1,146 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Transfer & Adjust"
+    eyebrow="Finance"
+    subtitle="Move funds between wallets as a double entry. Both legs are posted atomically and fully audited."
+    icon="sync_alt"
+    [compact]="true"
+    [actions]="[
+      { id: 'back', label: 'Wallet accounts', icon: 'account_balance_wallet', variant: 'secondary' },
+      { id: 'transactions', label: 'Ledger', icon: 'receipt_long', variant: 'secondary' },
+    ]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  <div class="transfer">
+    <!-- Form -->
+    <section class="ll-card">
+      <header class="ll-card__header">
+        <div>
+          <h3 class="ll-card__title">Movement details</h3>
+          <p class="ll-card__subtitle">Every field is recorded against both ledger entries</p>
+        </div>
+      </header>
+      <div class="ll-card__body">
+        <ll-dynamic-form
+          [schema]="schema"
+          [value]="model()"
+          [submitting]="submitting()"
+          submitLabel="Post movement"
+          cancelLabel="Cancel"
+          (formSubmit)="submit($event)"
+          (valueChanged)="onValueChange($event)"
+          (cancelled)="onHeaderAction('back')" />
+      </div>
+    </section>
+
+    <!-- Live preview -->
+    <aside class="preview">
+      <div class="preview__card ll-card">
+        <header class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">Movement preview</h3>
+            <p class="ll-card__subtitle">Balances update as you type</p>
+          </div>
+        </header>
+
+        <div class="preview__body">
+          <!-- Source -->
+          <div class="leg leg--debit">
+            <div class="leg__head">
+              <span class="leg__label">
+                <span class="material-symbols-rounded" aria-hidden="true">north_east</span>
+                Debit
+              </span>
+              @if (source(); as wallet) {
+                <ll-status-badge [value]="wallet.status" [map]="statusMap" [showIcon]="false" />
+              }
+            </div>
+
+            @if (source(); as wallet) {
+              <strong class="leg__owner">{{ wallet.ownerName }}</strong>
+              <span class="leg__code ll-mono">{{ wallet.code }} · {{ humanise(wallet.ownerType) }}</span>
+              <dl class="leg__balances">
+                <div>
+                  <dt>Current</dt>
+                  <dd class="ll-numeric">{{ money(wallet.balance) }}</dd>
+                </div>
+                <div>
+                  <dt>Available</dt>
+                  <dd class="ll-numeric">{{ money(wallet.availableBalance) }}</dd>
+                </div>
+                <div class="leg__projected">
+                  <dt>After movement</dt>
+                  <dd class="ll-numeric">{{ money(projectedSource()) }}</dd>
+                </div>
+              </dl>
+            } @else {
+              <p class="leg__empty">Select a source wallet.</p>
+            }
+          </div>
+
+          <!-- Arrow -->
+          <div class="preview__arrow" aria-hidden="true">
+            <span class="material-symbols-rounded">arrow_downward</span>
+            @if (amount() > 0) {
+              <span class="preview__amount ll-numeric">{{ money(amount()) }}</span>
+            }
+          </div>
+
+          <!-- Destination -->
+          <div class="leg leg--credit">
+            <div class="leg__head">
+              <span class="leg__label">
+                <span class="material-symbols-rounded" aria-hidden="true">south_west</span>
+                Credit
+              </span>
+              @if (destination(); as wallet) {
+                <ll-status-badge [value]="wallet.status" [map]="statusMap" [showIcon]="false" />
+              }
+            </div>
+
+            @if (destination(); as wallet) {
+              <strong class="leg__owner">{{ wallet.ownerName }}</strong>
+              <span class="leg__code ll-mono">{{ wallet.code }} · {{ humanise(wallet.ownerType) }}</span>
+              <dl class="leg__balances">
+                <div>
+                  <dt>Current</dt>
+                  <dd class="ll-numeric">{{ money(wallet.balance) }}</dd>
+                </div>
+                <div>
+                  <dt>Available</dt>
+                  <dd class="ll-numeric">{{ money(wallet.availableBalance) }}</dd>
+                </div>
+                <div class="leg__projected">
+                  <dt>After movement</dt>
+                  <dd class="ll-numeric">{{ money(projectedDestination()) }}</dd>
+                </div>
+              </dl>
+            } @else {
+              <p class="leg__empty">Select a destination wallet.</p>
+            }
+          </div>
+
+          @if (problem(); as issue) {
+            <div class="preview__problem" role="alert">
+              <span class="material-symbols-rounded" aria-hidden="true">error</span>
+              {{ issue }}
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="preview__notice ll-card">
+        <span class="material-symbols-rounded" aria-hidden="true">gavel</span>
+        <div>
+          <strong>Controls in force</strong>
+          <ul>
+            <li>Both wallets must be active — frozen accounts are rejected.</li>
+            <li>The source must hold sufficient available balance, excluding held funds.</li>
+            <li>Posting requires typed confirmation and is written to the audit trail.</li>
+            <li>Movements cannot be edited; corrections require a compensating entry.</li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
