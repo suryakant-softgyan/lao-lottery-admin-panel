@@ -1,5 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { Injectable, inject } from '@angular/core';
+import { Subject } from 'rxjs';
 
 import { STORAGE_PREFIX } from '../constants/app.constants';
 import { LoggerService } from './logger.service';
@@ -16,6 +17,10 @@ export class StorageService {
   private readonly logger = inject(LoggerService);
   /** Fallback used when Web Storage is unavailable or throws. */
   private readonly memory = new Map<string, string>();
+  private readonly changeStream = new Subject<{ key: string; value: unknown }>();
+
+  /** Every persistent write — lets the remote-config layer mirror selected keys to the server. */
+  readonly changes$ = this.changeStream.asObservable();
 
   private readonly available = this.detectAvailability();
 
@@ -61,6 +66,9 @@ export class StorageService {
   }
 
   set<T>(key: string, value: T, session = false): void {
+    if (!session) {
+      this.changeStream.next({ key, value });
+    }
     const namespaced = this.key(key);
     const raw = JSON.stringify(value);
     try {

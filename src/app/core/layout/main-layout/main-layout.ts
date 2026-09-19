@@ -1,10 +1,25 @@
-import { ChangeDetectionStrategy, Component, HostListener, computed, effect, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  HostListener,
+  computed,
+  effect,
+  inject,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter, switchMap, timer } from 'rxjs';
+
+import { environment } from '@env/environment';
+import { DashboardService } from '@features/dashboard/data/dashboard.service';
 import { RouterOutlet } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AuthService } from '@core/authentication/auth.service';
 import { SessionService } from '@core/authentication/session.service';
+import { FeatureFlagService } from '@core/services/feature-flag.service';
+import { RemoteConfigService } from '@core/services/remote-config.service';
 import { LayoutService } from '@core/services/layout.service';
 import { LoadingService } from '@core/services/loading.service';
 import { NavigationService } from '@core/services/navigation.service';
@@ -49,6 +64,10 @@ export class MainLayout {
   protected readonly theme = inject(ThemeService);
   protected readonly auth = inject(AuthService);
   private readonly navigation = inject(NavigationService);
+  private readonly dashboard = inject(DashboardService);
+  private readonly featureFlags = inject(FeatureFlagService);
+  private readonly remoteConfig = inject(RemoteConfigService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly notifications = inject(NotificationCentreService);
 
   /** Content offset so the fixed sidebar never overlaps the page. */
@@ -68,6 +87,10 @@ export class MainLayout {
     });
 
     this.publishBadgeCounts();
+    if (!environment.useMockData) {
+      this.featureFlags.load().subscribe();
+      this.remoteConfig.start();
+    }
   }
 
   /**
@@ -75,6 +98,17 @@ export class MainLayout {
    * come from a lightweight `/dashboard/counters` poll.
    */
   private publishBadgeCounts(): void {
+    if (!environment.useMockData) {
+      // Live: a light poll keeps the operational badges current while the shell is open.
+      timer(0, 60_000)
+        .pipe(
+          filter(() => this.auth.isAuthenticated()),
+          switchMap(() => this.dashboard.counters()),
+          takeUntilDestroyed(this.destroyRef),
+        )
+        .subscribe((counters) => this.navigation.setBadges(counters));
+      return;
+    }
     this.navigation.setBadges({
       pendingDraws: mockDataset.draws.filter(
         (draw) => draw.status === DrawStatus.PendingVerification || draw.status === DrawStatus.Drawing,

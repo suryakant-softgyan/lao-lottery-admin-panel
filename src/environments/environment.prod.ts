@@ -3,14 +3,14 @@ import type { AppEnvironment } from './environment.model';
 export const environment: AppEnvironment = {
   production: true,
   name: 'production',
-  useMockData: true,
+  useMockData: false,
   apiBaseUrl: '/api/v1',
   wsBaseUrl: 'wss://api.laolottery.la/ws',
   appVersion: '1.0.0',
   buildNumber: 'release',
   defaultLanguage: 'en',
   supportedLanguages: ['en', 'lo'],
-  defaultTenantId: 'lao-national-lottery',
+  defaultTenantId: 'LAO_NATIONAL',
   multiTenant: true,
   session: {
     sessionTimeoutSeconds: 20 * 60,

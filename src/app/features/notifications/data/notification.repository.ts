@@ -1,5 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map, throwError } from 'rxjs';
+
+import { num } from '@core/api/live.util';
 
 import { CampaignStatus } from '@core/enums';
 import { mockDataset } from '@core/mock/dataset';
@@ -58,6 +60,9 @@ export class NotificationRepository extends BaseRepository<NotificationTemplate>
   // --------------------------------------------------------------- segments
 
   segments(query: PageQuery): Observable<Page<AudienceSegment>> {
+    if (this.live) {
+      return this.liveSegments().pipe(map((rows) => applyQuery(rows, query, { searchFields: ["name", "code", "description", "criteria"], dateField: "createdAt" })));
+    }
     return this.backend.respond(() =>
       applyQuery(mockDataset.segments, query, {
         searchFields: ['name', 'code', 'description', 'criteria'],
@@ -68,6 +73,9 @@ export class NotificationRepository extends BaseRepository<NotificationTemplate>
 
   /** Re-evaluates a dynamic segment's membership. */
   refreshSegment(id: string): Observable<AudienceSegment> {
+    if (this.live) {
+      return this.liveSegments().pipe(map((rows) => this.requireSegment(rows, id)));
+    }
     const index = mockDataset.segments.findIndex((segment) => segment.id === id);
     if (index === -1) {
       return this.backend.notFound<AudienceSegment>('Segment', id);
@@ -88,6 +96,9 @@ export class NotificationRepository extends BaseRepository<NotificationTemplate>
   // -------------------------------------------------------------- campaigns
 
   campaigns(query: PageQuery): Observable<Page<NotificationCampaign>> {
+    if (this.live) {
+      return this.livePage("admin/notifications/campaigns", query, (row) => this.campaignFromApi(row));
+    }
     return this.backend.respond(() =>
       applyQuery(mockDataset.campaigns, query, {
         searchFields: ['name', 'code', 'templateName', 'segmentName', 'createdByName'],
@@ -97,6 +108,9 @@ export class NotificationRepository extends BaseRepository<NotificationTemplate>
   }
 
   setCampaignStatus(id: string, status: CampaignStatus): Observable<NotificationCampaign> {
+    if (this.live) {
+      return this.liveCampaignStatus(id, status);
+    }
     const index = mockDataset.campaigns.findIndex((campaign) => campaign.id === id);
     if (index === -1) {
       return this.backend.notFound<NotificationCampaign>('Campaign', id);
@@ -118,6 +132,9 @@ export class NotificationRepository extends BaseRepository<NotificationTemplate>
   // ------------------------------------------------------------- statistics
 
   templateStatistics(): Observable<StatMetric[]> {
+    if (this.live) {
+      return this.liveTemplateStatistics();
+    }
     return this.backend.respond(() => {
       const templates = this.records;
       return [
@@ -154,6 +171,9 @@ export class NotificationRepository extends BaseRepository<NotificationTemplate>
   }
 
   campaignStatistics(): Observable<StatMetric[]> {
+    if (this.live) {
+      return this.liveCampaignStatistics();
+    }
     return this.backend.respond(() => {
       const campaigns = mockDataset.campaigns;
       const delivered = sumBy(campaigns, (campaign) => campaign.deliveredCount);
@@ -199,5 +219,158 @@ export class NotificationRepository extends BaseRepository<NotificationTemplate>
         },
       ];
     });
+  }
+  // =====================================================================================
+  // Live API implementation
+  // =====================================================================================
+
+  protected override get livePath(): string {
+    return 'admin/notifications/templates';
+  }
+
+  protected override fromApi(record: unknown): NotificationTemplate {
+    const api = record as NotificationTemplate & { language?: string };
+    const body = api.body ?? '';
+    return {
+      ...api,
+      subject: api.subject ?? '',
+      body,
+      variables: [...new Set([...body.matchAll(/\{\{(\w+)\}\}/g)].map((match) => match[1] as string))],
+      usageCount: api.usageCount ?? 0,
+      createdAt: api.createdAt ?? new Date().toISOString(),
+    };
+  }
+
+  protected override toApi(payload: Partial<NotificationTemplate>): unknown {
+    return {
+      code: payload.code,
+      name: payload.name,
+      channel: payload.channel,
+      category: payload.category,
+      language: (payload as { language?: string }).language ?? 'en',
+      subject: payload.subject,
+      body: payload.body,
+      active: payload.active ?? true,
+    };
+  }
+
+  /** The API has no partial update for templates: re-send the remembered template with the change. */
+  protected override livePatch(id: string, changes: Partial<NotificationTemplate>): Observable<NotificationTemplate> {
+    const current = this.records.find((template) => template.id === id);
+    if (!current) {
+      return throwError(() => new Error('Reload the template list and try again.'));
+    }
+    return this.update(id, { ...current, ...changes });
+  }
+
+  private static readonly SEGMENT_LABELS: Record<string, [string, string]> = {
+    ALL_CUSTOMERS: ['All customers', 'Every active player account'],
+    KYC_APPROVED: ['Verified players', 'Players whose identity (KYC) is approved'],
+    KYC_PENDING: ['Unverified players', 'Players who have not completed KYC'],
+    NEW_THIS_MONTH: ['New this month', 'Players registered in the last 30 days'],
+    INACTIVE_30_DAYS: ['Inactive 30 days', 'Players who have not signed in for 30 days'],
+    LOYALTY_GOLD_PLUS: ['Gold & Platinum', 'Players in the Gold or Platinum loyalty tier'],
+    AGENTS: ['Agents', 'Every active agent login'],
+    RETAILERS: ['Retailers', 'Every active retailer login'],
+    STAFF: ['Staff', 'Back-office users'],
+  };
+
+  /** Segments are rule based on the API (always "dynamic"): the size is computed on every read. */
+  private liveSegments(): Observable<AudienceSegment[]> {
+    return this.http.get<{ code: string; size: number }[]>(this.api('admin/notifications/segments')).pipe(
+      map((segments) =>
+        segments.map((segment) => {
+          const [name, description] = NotificationRepository.SEGMENT_LABELS[segment.code] ?? [segment.code, ''];
+          const now = new Date().toISOString();
+          return {
+            id: segment.code,
+            code: segment.code,
+            name,
+            description,
+            criteria: description,
+            memberCount: segment.size,
+            dynamic: true,
+            lastRefreshedAt: now,
+            createdAt: now,
+          };
+        }),
+      ),
+    );
+  }
+
+  private requireSegment(segments: AudienceSegment[], id: string): AudienceSegment {
+    const segment = segments.find((item) => item.id === id);
+    if (!segment) {
+      throw new Error(`Segment ${id} was not found.`);
+    }
+    return segment;
+  }
+
+  private campaignFromApi(record: unknown): NotificationCampaign {
+    const api = record as Record<string, unknown>;
+    const segment = String(api['segment'] ?? '');
+    return {
+      id: String(api['id']),
+      code: `CMP-${String(api['id']).slice(0, 8).toUpperCase()}`,
+      name: String(api['name'] ?? ''),
+      channels: [api['channel'] as NotificationCampaign['channels'][number]],
+      templateId: '',
+      templateName: String(api['title'] ?? ''),
+      segmentId: segment,
+      segmentName: NotificationRepository.SEGMENT_LABELS[segment]?.[0] ?? segment,
+      status: api['status'] as CampaignStatus,
+      scheduledAt: (api['scheduledAt'] as string | undefined) ?? undefined,
+      startedAt: (api['startedAt'] as string | undefined) ?? undefined,
+      completedAt: (api['completedAt'] as string | undefined) ?? undefined,
+      targetCount: num(api['targetCount']),
+      sentCount: num(api['sentCount']),
+      deliveredCount: num(api['sentCount']),
+      openedCount: 0,
+      failedCount: num(api['failedCount']),
+      createdByName: String(api['createdBy'] ?? ''),
+      createdAt: String(api['createdAt'] ?? ''),
+    };
+  }
+
+  private liveCampaignStatus(id: string, status: CampaignStatus): Observable<NotificationCampaign> {
+    const action =
+      status === CampaignStatus.Running ? 'launch' : status === CampaignStatus.Cancelled ? 'cancel' : null;
+    if (!action) {
+      return throwError(() => new Error('The API can launch or cancel a campaign; pausing is not supported.'));
+    }
+    return this.http
+      .post<unknown>(this.api(`admin/notifications/campaigns/${id}/${action}`), {})
+      .pipe(map((row) => this.campaignFromApi(row)));
+  }
+
+  private liveTemplateStatistics(): Observable<StatMetric[]> {
+    return this.all().pipe(
+      map((templates) => {
+        const byChannel = (channel: string): number => templates.filter((t) => t.channel === channel).length;
+        return [
+          { id: 'total', label: 'Templates', value: templates.length, icon: 'description', tone: 'primary' as const },
+          { id: 'active', label: 'Active', value: templates.filter((t) => t.active).length, icon: 'check_circle', tone: 'success' as const },
+          { id: 'push', label: 'Push', value: byChannel('PUSH'), icon: 'notifications', tone: 'info' as const },
+          { id: 'sms', label: 'SMS', value: byChannel('SMS'), icon: 'sms', tone: 'warning' as const },
+          { id: 'email', label: 'Email', value: byChannel('EMAIL'), icon: 'mail', tone: 'neutral' as const },
+        ];
+      }),
+    );
+  }
+
+  private liveCampaignStatistics(): Observable<StatMetric[]> {
+    return this.livePage('admin/notifications/campaigns', { page: 0, size: 200 }, (row) => this.campaignFromApi(row)).pipe(
+      map((page) => {
+        const campaigns = page.content;
+        const count = (status: CampaignStatus): number => campaigns.filter((c) => c.status === status).length;
+        return [
+          { id: 'total', label: 'Campaigns', value: page.totalElements, icon: 'campaign', tone: 'primary' as const },
+          { id: 'running', label: 'Running', value: count(CampaignStatus.Running), icon: 'play_circle', tone: 'success' as const },
+          { id: 'scheduled', label: 'Scheduled', value: count(CampaignStatus.Scheduled), icon: 'event', tone: 'info' as const },
+          { id: 'sent', label: 'Messages sent', value: campaigns.reduce((sum, c) => sum + c.sentCount, 0), icon: 'send', tone: 'neutral' as const },
+          { id: 'failed', label: 'Failed', value: campaigns.reduce((sum, c) => sum + c.failedCount, 0), icon: 'error', tone: 'danger' as const },
+        ];
+      }),
+    );
   }
 }

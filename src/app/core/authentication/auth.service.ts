@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, map, tap, throwError } from 'rxjs';
 
 import { environment } from '@env/environment';
-import { STORAGE_KEYS } from '../constants/app.constants';
+import { PLACEHOLDER, STORAGE_KEYS } from '../constants/app.constants';
 import { LoginResult } from '../enums';
 import type {
   AuthTokens,
@@ -20,6 +20,7 @@ import { LoggerService } from '../services/logger.service';
 import { MockBackendService } from '../services/mock-backend.service';
 import { StorageService } from '../services/storage.service';
 import { DEMO_ACCOUNTS, type DemoAccount } from './demo-accounts.constants';
+import { toPanelPermissions } from './permission-map';
 import { TokenService } from './token.service';
 
 interface PendingChallenge {
@@ -84,8 +85,16 @@ export class AuthService {
   login(request: LoginRequest): Observable<LoginResponse> {
     if (!environment.useMockData) {
       return this.http
-        .post<LoginResponse>(`${environment.apiBaseUrl}/auth/login`, request)
-        .pipe(tap((response) => this.handleLoginResponse(response, request.rememberMe)));
+        .post<LoginResponse>(`${environment.apiBaseUrl}/auth/login`, { ...request, device: this.deviceInfo() })
+        .pipe(
+          map((response) => this.normaliseLogin(response)),
+          tap((response) => {
+            if (response.result === LoginResult.MfaRequired && response.challengeId) {
+              this.liveChallenge = { challengeId: response.challengeId, remember: request.rememberMe };
+            }
+            this.handleLoginResponse(response, request.rememberMe);
+          }),
+        );
     }
 
     return this.backend
@@ -103,9 +112,21 @@ export class AuthService {
 
   verifyOtp(request: OtpVerifyRequest): Observable<LoginResponse> {
     if (!environment.useMockData) {
+      const remember = this.liveChallenge?.remember ?? true;
       return this.http
-        .post<LoginResponse>(`${environment.apiBaseUrl}/auth/verify-otp`, request)
-        .pipe(tap((response) => this.handleLoginResponse(response, true)));
+        .post<LoginResponse>(`${environment.apiBaseUrl}/auth/verify-otp`, {
+          challengeId: this.liveChallenge?.challengeId ?? request.challengeId,
+          code: request.code,
+          rememberMe: remember,
+          device: this.deviceInfo(),
+        })
+        .pipe(
+          map((response) => this.normaliseLogin(response)),
+          tap((response) => {
+            this.liveChallenge = null;
+            this.handleLoginResponse(response, remember);
+          }),
+        );
     }
 
     return this.backend
@@ -124,10 +145,17 @@ export class AuthService {
   /** Re-sends the OTP for the outstanding challenge. */
   resendOtp(): Observable<{ challengeId: string; target: string }> {
     if (!environment.useMockData) {
-      return this.http.post<{ challengeId: string; target: string }>(
-        `${environment.apiBaseUrl}/auth/resend-otp`,
-        { challengeId: this.challenge?.challengeId },
-      );
+      return this.http
+        .post<{ challengeId: string; challengeTarget: string }>(`${environment.apiBaseUrl}/auth/resend-otp`, {
+          challengeId: this.liveChallenge?.challengeId,
+        })
+        .pipe(
+          map((issued) => {
+            // every resend issues a fresh challenge id
+            this.liveChallenge = { challengeId: issued.challengeId, remember: this.liveChallenge?.remember ?? true };
+            return { challengeId: issued.challengeId, target: issued.challengeTarget };
+          }),
+        );
     }
     if (!this.challenge) {
       return throwError(() => new Error('There is no verification in progress.'));
@@ -145,10 +173,12 @@ export class AuthService {
 
   forgotPassword(request: ForgotPasswordRequest): Observable<{ sent: boolean; target: string }> {
     if (!environment.useMockData) {
-      return this.http.post<{ sent: boolean; target: string }>(
-        `${environment.apiBaseUrl}/auth/forgot-password`,
-        request,
-      );
+      return this.http
+        .post<{ challengeId: string; challengeTarget: string }>(
+          `${environment.apiBaseUrl}/auth/forgot-password`,
+          request,
+        )
+        .pipe(map((issued) => ({ sent: true, target: issued.challengeTarget })));
     }
     const account = this.findAccount(request.identifier);
     // Never disclose whether an account exists — always report success.
@@ -163,14 +193,22 @@ export class AuthService {
 
   resetPassword(request: ResetPasswordRequest): Observable<{ success: boolean }> {
     if (!environment.useMockData) {
-      return this.http.post<{ success: boolean }>(`${environment.apiBaseUrl}/auth/reset-password`, request);
+      return this.http
+        .post<unknown>(`${environment.apiBaseUrl}/auth/reset-password`, request)
+        .pipe(map(() => ({ success: true })));
     }
     return this.backend.respond(() => ({ success: true }));
   }
 
   changePassword(request: ChangePasswordRequest): Observable<{ success: boolean }> {
     if (!environment.useMockData) {
-      return this.http.post<{ success: boolean }>(`${environment.apiBaseUrl}/auth/change-password`, request);
+      return this.http.post<unknown>(`${environment.apiBaseUrl}/auth/change-password`, request).pipe(
+        map(() => {
+          this.currentUser.update((user) => (user ? { ...user, mustChangePassword: false } : user));
+          this.persistUser();
+          return { success: true };
+        }),
+      );
     }
     return this.backend.respond(() => {
       this.currentUser.update((user) => (user ? { ...user, mustChangePassword: false } : user));
@@ -201,6 +239,16 @@ export class AuthService {
   }
 
   logout(reason?: 'manual' | 'expired' | 'idle' | 'unauthorised'): void {
+    if (!environment.useMockData && this.tokens.hasToken() && reason !== 'unauthorised') {
+      // Revokes the access + refresh token server side. Fire and forget: the local session ends regardless.
+      this.http
+        .post(
+          `${environment.apiBaseUrl}/auth/logout`,
+          { refreshToken: this.tokens.refreshToken, allDevices: false },
+          { headers: { Authorization: `Bearer ${this.tokens.accessToken}`, 'X-Quiet': '1' } },
+        )
+        .subscribe({ error: () => undefined });
+    }
     this.logger.info(`Signing out (${reason ?? 'manual'})`);
     this.currentUser.set(null);
     this.challenge = null;
@@ -232,6 +280,42 @@ export class AuthService {
   }
 
   // ---------------------------------------------------------------- internals
+
+  /** Outstanding live MFA challenge (the id changes on every resend). */
+  private liveChallenge: { challengeId: string; remember: boolean } | null = null;
+
+  /** Re-reads the signed-in user from the API: picks up role / permission changes made by an admin. */
+  reloadUser(): Observable<AuthenticatedUser> {
+    return this.http.get<AuthenticatedUser>(`${environment.apiBaseUrl}/auth/me`).pipe(
+      map((user) => this.normaliseUser(user)),
+      tap((user) => {
+        this.currentUser.set(user);
+        this.persistUser();
+      }),
+    );
+  }
+
+  private deviceInfo(): Record<string, string> {
+    let deviceId = this.storage.get<string>('system.deviceId', '');
+    if (!deviceId) {
+      deviceId = `web-${crypto.randomUUID()}`;
+      this.storage.set('system.deviceId', deviceId);
+    }
+    return { deviceId, deviceName: navigator.platform || 'Browser', deviceType: 'WEB', os: navigator.platform };
+  }
+
+  private normaliseLogin(response: LoginResponse): LoginResponse {
+    return response.user ? { ...response, user: this.normaliseUser(response.user) } : response;
+  }
+
+  /** API → panel: translated permission codes and a guaranteed avatar. */
+  private normaliseUser(user: AuthenticatedUser): AuthenticatedUser {
+    return {
+      ...user,
+      avatarUrl: user.avatarUrl || PLACEHOLDER.avatar(user.fullName),
+      permissions: toPanelPermissions(user.permissions ?? []),
+    };
+  }
 
   private handleLoginResponse(response: LoginResponse, remember: boolean): void {
     if (response.result !== LoginResult.Success || !response.tokens || !response.user) {

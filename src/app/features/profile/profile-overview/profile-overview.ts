@@ -8,6 +8,9 @@ import { LANGUAGES } from '@core/constants/app.constants';
 import { PERMISSION_MODULES } from '@core/constants/permission.constants';
 import { ROLE_MAP } from '@core/constants/status-maps.constants';
 import { mockDataset } from '@core/mock/dataset';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '@env/environment';
+import { parseUserAgent } from '@core/api/live.util';
 import type { LoginHistoryEntry } from '@core/models';
 import { ThemeService } from '@core/services/theme.service';
 import { ToastService } from '@core/services/toast.service';
@@ -42,8 +45,34 @@ export class ProfileOverview {
   protected readonly user = computed(() => this.auth.user());
 
   protected readonly loginHistory = signal<LoginHistoryEntry[]>(
-    mockDataset.loginHistory(this.auth.user()?.id ?? 'me').slice(0, 8),
+    environment.useMockData ? mockDataset.loginHistory(this.auth.user()?.id ?? 'me').slice(0, 8) : [],
   );
+
+  private readonly liveHistory = environment.useMockData
+    ? null
+    : inject(HttpClient)
+        .get<{ content: Record<string, unknown>[] }>(`${environment.apiBaseUrl}/me/login-history`, {
+          params: { size: '8' },
+        })
+        .subscribe((page) =>
+          this.loginHistory.set(
+            page.content.map((row) => {
+              const agent = parseUserAgent(row['device'] as string | undefined);
+              return {
+                id: String(row['id']),
+                timestamp: String(row['timestamp']),
+                ipAddress: String(row['ipAddress'] ?? ''),
+                location: '—',
+                device: `${agent.browser} · ${agent.os}`,
+                deviceType: (row['deviceType'] ?? 'WEB') as LoginHistoryEntry['deviceType'],
+                browser: agent.browser,
+                os: agent.os,
+                success: Boolean(row['success']),
+                failureReason: (row['failureReason'] as string | undefined) ?? undefined,
+              };
+            }),
+          ),
+        );
 
   protected readonly profileItems = computed<InfoItem[]>(() => {
     const user = this.user();

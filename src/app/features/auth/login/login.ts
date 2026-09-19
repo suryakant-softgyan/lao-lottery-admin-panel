@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { AuthService } from '@core/authentication/auth.service';
+import { environment } from '@env/environment';
 import { DEMO_CREDENTIAL_HINTS } from '@core/authentication/demo-accounts.constants';
 import { LoginResult } from '@core/enums';
 import { ThemeService } from '@core/services/theme.service';
@@ -84,7 +85,10 @@ export class Login {
 
   /** Fills the form from the demo panel so reviewers can switch roles fast. */
   protected useDemoAccount(username: string): void {
-    this.form.patchValue({ username, password: 'Lottery@2026' });
+    this.form.patchValue({
+      username,
+      password: environment.useMockData ? 'Lottery@2026' : username === 'superadmin' ? 'Admin@12345' : 'Demo@12345',
+    });
     this.errorMessage.set(null);
   }
 

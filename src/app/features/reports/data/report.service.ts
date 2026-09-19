@@ -1,5 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
+
+import { environment } from '@env/environment';
+import { num } from '@core/api/live.util';
 
 import { ReportPeriod, TicketStatus, TransactionType } from '@core/enums';
 import { mockDataset } from '@core/mock/dataset';
@@ -31,6 +35,7 @@ const DAY_MS = 86_400_000;
 @Injectable({ providedIn: 'root' })
 export class ReportService {
   private readonly backend = inject(MockBackendService);
+  private readonly http = inject(HttpClient);
 
   readonly definitions: ReportDefinition[] = [
     {
@@ -95,6 +100,9 @@ export class ReportService {
 
   /** Runs a report and returns labels, series, rows, columns and totals. */
   run(request: ReportRequest): Observable<ReportResult> {
+    if (!environment.useMockData) {
+      return this.liveRun(request);
+    }
     return this.backend.respond(() => this.build(request), { latencyMs: 480 });
   }
 
@@ -483,6 +491,9 @@ export class ReportService {
 
   /** Headline figures for the report centre cards. */
   headlines(): Observable<Record<string, number>> {
+    if (!environment.useMockData) {
+      return this.liveHeadlines();
+    }
     return this.backend.respond(() => {
       const tickets = mockDataset.tickets;
       const draws = mockDataset.draws;
@@ -501,4 +512,129 @@ export class ReportService {
       };
     });
   }
+  // =====================================================================================
+  // Live API implementation — one endpoint (`/admin/reports`) feeds every report type
+  // =====================================================================================
+
+  private liveFetch(request: Pick<ReportRequest, 'period' | 'from' | 'to'>): Observable<LiveReport> {
+    const params: Record<string, string> = { period: request.from ? 'CUSTOM' : request.period };
+    if (request.from) {
+      params['from'] = request.from.slice(0, 10);
+    }
+    if (request.to) {
+      params['to'] = request.to.slice(0, 10);
+    }
+    return this.http.get<LiveReport>(`${environment.apiBaseUrl}/admin/reports`, { params });
+  }
+
+  private liveHeadlines(): Observable<Record<string, number>> {
+    return this.liveFetch({ period: ReportPeriod.Monthly }).pipe(
+      map((report) => ({
+        sales: num(report.totals.sales),
+        revenue: num(report.totals.profit),
+        commission: num(report.totals.commission),
+        tax: num(report.totals.tax),
+        winners: num(report.totals.winners),
+        channel: num(report.totals.tickets),
+      })),
+    );
+  }
+
+  private liveRun(request: ReportRequest): Observable<ReportResult> {
+    return this.liveFetch(request).pipe(
+      map((report) => {
+        const definition = this.definition(request.reportType);
+        const groupBy = request.groupBy ?? definition?.defaultGroupBy ?? 'day';
+        const breakdown =
+          groupBy === 'product'
+            ? report.byLottery
+            : groupBy === 'channel' || request.reportType === 'channel'
+              ? report.byChannel
+              : groupBy === 'province'
+                ? report.byProvince
+                : null;
+
+        type Column = ReportResult['columns'][number];
+        const period: Column = { key: 'group', label: breakdown ? 'Group' : 'Period', type: 'text' };
+        let columns: Column[];
+        let rows: Record<string, string | number>[];
+
+        if (breakdown) {
+          columns = [
+            period,
+            { key: 'tickets', label: 'Tickets', type: 'number' },
+            { key: 'sales', label: 'Sales', type: 'currency' },
+            { key: 'share', label: 'Share', type: 'percent' },
+          ];
+          const total = breakdown.reduce((sum, row) => sum + num(row.sales), 0) || 1;
+          rows = breakdown.map((row) => ({
+            group: String(row.key).replace(/_/g, ' '),
+            tickets: num(row.tickets),
+            sales: num(row.sales),
+            share: Math.round((num(row.sales) / total) * 1000) / 10,
+          }));
+        } else {
+          const money = (key: string, label: string): Column => ({ key, label, type: 'currency' });
+          const byType: Record<string, Column[]> = {
+            sales: [{ key: 'tickets', label: 'Tickets', type: 'number' }, money('sales', 'Sales')],
+            revenue: [money('sales', 'Sales'), money('prizes', 'Prizes (net)'), money('commission', 'Commission'), money('profit', 'Profit')],
+            commission: [money('sales', 'Sales'), money('commission', 'Commission')],
+            tax: [money('prizes', 'Prizes (net)'), money('tax', 'Tax withheld')],
+            winners: [{ key: 'winners', label: 'Winners', type: 'number' }, money('prizes', 'Prizes (net)'), money('tax', 'Tax withheld')],
+          };
+          columns = [period, ...(byType[request.reportType] ?? byType['sales'] ?? [])];
+          rows = report.series.map((bucket) => ({
+            group: bucket.label,
+            tickets: num(bucket.tickets),
+            sales: num(bucket.sales),
+            winners: num(bucket.winners),
+            prizes: num(bucket.prizes),
+            tax: num(bucket.tax),
+            commission: num(bucket.commission),
+            profit: num(bucket.profit),
+          }));
+        }
+
+        const numeric = columns.filter((column) => column.type === 'currency' || column.type === 'number');
+        const totals: Record<string, number> = {};
+        numeric.forEach((column) => (totals[column.key] = rows.reduce((sum, row) => sum + num(row[column.key]), 0)));
+
+        return {
+          reportType: request.reportType,
+          title: `${definition?.title ?? 'Sales'} Report`,
+          generatedAt: new Date().toISOString(),
+          period: `${report.from} → ${report.to}`,
+          labels: rows.map((row) => String(row['group'])),
+          series: numeric
+            .filter((column) => column.type === 'currency')
+            .slice(0, 3)
+            .map((column) => ({ label: column.label, data: rows.map((row) => num(row[column.key])) })),
+          rows,
+          columns,
+          totals,
+        };
+      }),
+    );
+  }
+}
+
+interface LiveBucket {
+  label: string;
+  tickets: number;
+  sales: number;
+  winners: number;
+  prizes: number;
+  tax: number;
+  commission: number;
+  profit: number;
+}
+
+interface LiveReport {
+  from: string;
+  to: string;
+  totals: LiveBucket;
+  series: LiveBucket[];
+  byLottery: { key: string; tickets: number; sales: number }[];
+  byChannel: { key: string; tickets: number; sales: number }[];
+  byProvince: { key: string; tickets: number; sales: number }[];
 }

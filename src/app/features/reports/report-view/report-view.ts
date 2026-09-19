@@ -6,6 +6,8 @@ import { MatMenuModule } from '@angular/material/menu';
 
 import { ExportFormat, ReportPeriod } from '@core/enums';
 import { mockDataset } from '@core/mock/dataset';
+import { environment } from '@env/environment';
+import { LaoProvince } from '@core/enums';
 import type { ReportRequest, ReportResult } from '@core/models';
 import type { TableColumn } from '@core/models/table.model';
 import { BreadcrumbService } from '@core/services/breadcrumb.service';
@@ -89,14 +91,17 @@ export class ReportView {
 
   protected readonly provinces = [
     { value: '', label: 'All provinces' },
-    ...[...new Set(mockDataset.retailers.map((retailer) => retailer.province))]
+    ...(environment.useMockData
+      ? [...new Set(mockDataset.retailers.map((retailer) => retailer.province))]
+      : Object.values(LaoProvince)
+    )
       .sort()
-      .map((province) => ({ value: province, label: province })),
+      .map((province) => ({ value: province, label: humanise(province) })),
   ];
 
   protected readonly lotteries = [
     { value: '', label: 'All products' },
-    ...mockDataset.lotteries.map((game) => ({ value: game.id, label: game.name })),
+    ...(environment.useMockData ? mockDataset.lotteries.map((game) => ({ value: game.id, label: game.name })) : []),
   ];
 
   /** Totals rendered as a strip above the table. */

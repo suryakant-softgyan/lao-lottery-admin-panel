@@ -1,5 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of } from 'rxjs';
+
+import { num } from '@core/api/live.util';
+import { PLACEHOLDER } from '@core/constants/app.constants';
 
 import { ReconciliationStatus, RefundStatus, TransactionStatus } from '@core/enums';
 import { mockDataset } from '@core/mock/dataset';
@@ -41,6 +44,9 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
 
   /** Re-attempts a failed gateway transaction. */
   retry(id: string): Observable<PaymentTransaction> {
+    if (this.live) {
+      return this.liveRetry(id);
+    }
     const transaction = this.records.find((item) => item.id === id);
     if (!transaction) {
       return this.backend.notFound<PaymentTransaction>('Payment', id);
@@ -54,6 +60,9 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
   }
 
   markReconciled(id: string): Observable<PaymentTransaction> {
+    if (this.live) {
+      return this.http.post<unknown>(`${this.baseUrl}/${id}/reconcile`, {}).pipe(map((row) => this.fromApi(row)));
+    }
     return this.patch(id, {
       reconciliationStatus: ReconciliationStatus.Matched,
     } as Partial<PaymentTransaction>);
@@ -62,6 +71,9 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
   // -------------------------------------------------------------- gateways
 
   gateways(query: PageQuery): Observable<Page<PaymentGateway>> {
+    if (this.live) {
+      return this.liveGateways().pipe(map((rows) => applyQuery(rows, query, { searchFields: ["name", "code", "provider"], dateField: "createdAt" })));
+    }
     return this.backend.respond(() =>
       applyQuery(mockDataset.gateways, query, {
         searchFields: ['name', 'code', 'provider'],
@@ -71,10 +83,16 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
   }
 
   allGateways(): Observable<PaymentGateway[]> {
+    if (this.live) {
+      return this.liveGateways();
+    }
     return this.backend.respond(() => mockDataset.gateways);
   }
 
   setGatewayStatus(id: string, status: PaymentGateway['status']): Observable<PaymentGateway> {
+    if (this.live) {
+      return this.http.patch<unknown>(this.api(`admin/payments/gateways/${id}/status`), null, { params: { status } }).pipe(map((row) => this.gatewayFromApi(row, {})));
+    }
     const index = mockDataset.gateways.findIndex((gateway) => gateway.id === id);
     if (index === -1) {
       return this.backend.notFound<PaymentGateway>('Gateway', id);
@@ -93,6 +111,9 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
   // ------------------------------------------------------------------ banks
 
   banks(query: PageQuery): Observable<Page<Bank>> {
+    if (this.live) {
+      return this.http.get<unknown[]>(this.api("admin/payments/banks")).pipe(map((rows) => applyQuery(rows.map((row) => this.bankFromApi(row)), query, { searchFields: ["name", "nameLo", "code", "swiftCode", "contactPerson"], dateField: "createdAt" })));
+    }
     return this.backend.respond(() =>
       applyQuery(mockDataset.banks, query, {
         searchFields: ['name', 'nameLo', 'code', 'swiftCode', 'contactPerson'],
@@ -102,6 +123,9 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
   }
 
   setBankActive(id: string, active: boolean): Observable<Bank> {
+    if (this.live) {
+      return this.http.patch<unknown>(this.api(`admin/payments/banks/${id}/active`), null, { params: { active: String(active) } }).pipe(map((row) => this.bankFromApi(row)));
+    }
     const index = mockDataset.banks.findIndex((bank) => bank.id === id);
     if (index === -1) {
       return this.backend.notFound<Bank>('Bank', id);
@@ -120,6 +144,9 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
   // ---------------------------------------------------------------- refunds
 
   refunds(query: PageQuery): Observable<Page<Refund>> {
+    if (this.live) {
+      return this.livePage("admin/payments/refunds", query, (row) => row as Refund);
+    }
     return this.backend.respond(() =>
       applyQuery(mockDataset.refunds, query, {
         searchFields: ['reference', 'paymentReference', 'customerName', 'reason', 'requestedBy'],
@@ -129,6 +156,9 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
   }
 
   decideRefund(id: string, status: RefundStatus, actor: string, remarks?: string): Observable<Refund> {
+    if (this.live) {
+      return this.http.post<Refund>(this.api(`admin/payments/refunds/${id}/review`), { approved: status !== RefundStatus.Rejected, remarks });
+    }
     const index = mockDataset.refunds.findIndex((refund) => refund.id === id);
     if (index === -1) {
       return this.backend.notFound<Refund>('Refund', id);
@@ -152,6 +182,9 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
   // --------------------------------------------------------- reconciliation
 
   reconciliations(query: PageQuery): Observable<Page<ReconciliationRecord>> {
+    if (this.live) {
+      return this.livePage("admin/payments/reconciliations", query, (row) => row as ReconciliationRecord);
+    }
     return this.backend.respond(() =>
       applyQuery(mockDataset.reconciliations, query, {
         searchFields: ['batchReference', 'gatewayName', 'reconciledBy'],
@@ -161,6 +194,9 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
   }
 
   resolveReconciliation(id: string, actor: string, remarks: string): Observable<ReconciliationRecord> {
+    if (this.live) {
+      return this.http.post<ReconciliationRecord>(this.api(`admin/payments/reconciliations/${id}/resolve`), { remarks });
+    }
     const index = mockDataset.reconciliations.findIndex((record) => record.id === id);
     if (index === -1) {
       return this.backend.notFound<ReconciliationRecord>('Reconciliation batch', id);
@@ -181,6 +217,9 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
   // -------------------------------------------------------------- statistics
 
   statistics(): Observable<StatMetric[]> {
+    if (this.live) {
+      return this.liveStatistics();
+    }
     return this.backend.respond(() => {
       const payments = this.records;
       const count = (status: TransactionStatus): number =>
@@ -230,6 +269,9 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
 
   /** Gateway health rollup for the gateway screen. */
   gatewayStatistics(): Observable<StatMetric[]> {
+    if (this.live) {
+      return this.liveGatewayStatistics();
+    }
     return this.backend.respond(() => {
       const gateways = mockDataset.gateways;
       return [
@@ -257,5 +299,113 @@ export class PaymentRepository extends BaseRepository<PaymentTransaction> {
         },
       ];
     });
+  }
+  // =====================================================================================
+  // Live API implementation
+  // =====================================================================================
+
+  protected override get livePath(): string {
+    return 'admin/payments/transactions';
+  }
+
+  protected override fromApi(record: unknown): PaymentTransaction {
+    const api = record as PaymentTransaction;
+    return { ...api, customerName: api.customerName ?? '', customerPhone: api.customerPhone ?? '' };
+  }
+
+  /** "Retry" on a withdrawal that is waiting for finance means: release it to the gateway. */
+  private liveRetry(id: string): Observable<PaymentTransaction> {
+    return this.http
+      .post<unknown>(this.api(`admin/payments/withdrawals/${id}/review`), {
+        approved: true,
+        remarks: 'Released from the admin portal',
+      })
+      .pipe(map((row) => this.fromApi(row)));
+  }
+
+  private liveSums(): Observable<{ processedValue?: number; fees?: number; gateways?: Record<string, number | string>[] }> {
+    return this.http
+      .get<{ processedValue?: number; fees?: number; gateways?: Record<string, number | string>[] }>(
+        this.api('admin/stats/payments'),
+        { headers: { 'X-Quiet': '1' } },
+      )
+      .pipe(catchError(() => of({})));
+  }
+
+  private gatewayFromApi(record: unknown, stats: Record<string, number | string>): PaymentGateway {
+    const api = record as PaymentGateway;
+    return {
+      ...api,
+      logoUrl: api.logoUrl || PLACEHOLDER.avatar(api.name),
+      methods: api.methods ?? [],
+      currencies: api.currencies ?? ['LAK'],
+      webhookUrl: api.webhookUrl ?? '',
+      successRate: num(stats['successRate'], 100),
+      avgResponseMs: 0,
+      volumeToday: num(stats['volumeToday']),
+      volumeMonth: num(stats['volumeMonth']),
+    };
+  }
+
+  private bankFromApi(record: unknown): Bank {
+    const api = record as Bank;
+    return {
+      ...api,
+      nameLo: api.nameLo ?? '',
+      swiftCode: api.swiftCode ?? '',
+      logoUrl: api.logoUrl || PLACEHOLDER.avatar(api.code ?? api.name),
+      settlementAccount: api.settlementAccount ?? '',
+      transactionCount: api.transactionCount ?? 0,
+      transactionVolume: api.transactionVolume ?? 0,
+      createdAt: api.createdAt ?? new Date().toISOString(),
+    };
+  }
+
+  private liveGateways(): Observable<PaymentGateway[]> {
+    return forkJoin({
+      gateways: this.http.get<unknown[]>(this.api('admin/payments/gateways')),
+      sums: this.liveSums(),
+    }).pipe(
+      map(({ gateways, sums }) =>
+        gateways.map((gateway) =>
+          this.gatewayFromApi(
+            gateway,
+            (sums.gateways ?? []).find((row) => row['gatewayCode'] === (gateway as PaymentGateway).code) ?? {},
+          ),
+        ),
+      ),
+    );
+  }
+
+  private liveStatistics(): Observable<StatMetric[]> {
+    const count = (status?: string): Observable<number> => this.liveCount(this.livePath, status ? { status } : {});
+    return forkJoin({
+      total: count(),
+      success: count('SUCCESS'),
+      failed: count('FAILED'),
+      processing: count('PROCESSING'),
+      onHold: count('ON_HOLD'),
+      sums: this.liveSums(),
+    }).pipe(
+      map((totals) => [
+        { id: 'total', label: 'Transactions', value: totals.total, icon: 'payments', tone: 'primary' as const },
+        { id: 'success', label: 'Successful', value: totals.success, icon: 'check_circle', tone: 'success' as const },
+        { id: 'failed', label: 'Failed', value: totals.failed, icon: 'error', tone: 'danger' as const },
+        { id: 'pending', label: 'Pending', value: totals.processing + totals.onHold, icon: 'hourglass_top', tone: 'warning' as const },
+        { id: 'volume', label: 'Processed value', value: num(totals.sums.processedValue), icon: 'account_balance', tone: 'info' as const },
+        { id: 'fees', label: 'Gateway fees', value: num(totals.sums.fees), icon: 'receipt_long', tone: 'neutral' as const },
+      ]),
+    );
+  }
+
+  private liveGatewayStatistics(): Observable<StatMetric[]> {
+    return this.liveGateways().pipe(
+      map((gateways) => [
+        { id: 'gateways', label: 'Gateways', value: gateways.length, icon: 'hub', tone: 'primary' as const },
+        { id: 'active', label: 'Active', value: gateways.filter((g) => g.status === 'ACTIVE').length, icon: 'check_circle', tone: 'success' as const },
+        { id: 'degraded', label: 'Degraded', value: gateways.filter((g) => g.status === 'DEGRADED' || g.status === 'MAINTENANCE').length, icon: 'warning', tone: 'warning' as const },
+        { id: 'volume', label: 'Volume today', value: sumBy(gateways, (g) => g.volumeToday), icon: 'payments', tone: 'info' as const },
+      ]),
+    );
   }
 }

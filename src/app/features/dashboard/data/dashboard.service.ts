@@ -1,5 +1,11 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable, catchError, forkJoin, map, of } from 'rxjs';
+
+import { environment } from '@env/environment';
+import { num } from '@core/api/live.util';
+import { PLACEHOLDER } from '@core/constants/app.constants';
+import { HealthState, Severity } from '@core/enums';
 
 import {
   AgentStatus,
@@ -53,13 +59,20 @@ const DAY_MS = 86_400_000;
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
   private readonly backend = inject(MockBackendService);
+  private readonly http = inject(HttpClient);
 
   load(): Observable<DashboardSnapshot> {
+    if (!environment.useMockData) {
+      return this.liveLoad();
+    }
     return this.backend.respond(() => this.build(), { latencyMs: 420 });
   }
 
   /** Lightweight poll used by the system-health widget. */
   health(): Observable<SystemHealth> {
+    if (!environment.useMockData) {
+      return this.liveHealth();
+    }
     return this.backend.respond(() => mockDataset.systemHealth, { latencyMs: 260 });
   }
 
@@ -414,12 +427,185 @@ export class DashboardService {
 
   /** Counters used by the sidebar badges, refreshed alongside the dashboard. */
   counters(): Observable<Record<string, number>> {
+    if (!environment.useMockData) {
+      return this.liveCounters();
+    }
     return this.load().pipe(
       map((snapshot) => {
         const byId = new Map(snapshot.metrics.map((metric) => [metric.id, metric.value]));
         return {
           pendingDraws: byId.get('pending-draws') ?? 0,
           failedPayments: byId.get('failed-transactions') ?? 0,
+        };
+      }),
+    );
+  }
+  // =====================================================================================
+  // Live API implementation
+  // =====================================================================================
+
+  private api(path: string): string {
+    return `${environment.apiBaseUrl}/${path}`;
+  }
+
+  /** Sidebar badges: one light call, polled by the shell. */
+  private liveCounters(): Observable<Record<string, number>> {
+    return this.http
+      .get<Record<string, number>>(this.api('admin/dashboard/pending'), { headers: { 'X-Quiet': '1' } })
+      .pipe(
+        map((pending) => ({
+          pendingDraws: num(pending['drawsAwaitingVerification']) + num(pending['liveDraws']),
+          liveDraw: num(pending['liveDraws']),
+          pendingAgentApprovals: num(pending['agentApprovals']) + num(pending['retailerApprovals']),
+          pendingKyc: num(pending['kycReviews']),
+          failedPayments: num(pending['failedPaymentsToday']),
+          pendingApprovals: num(pending['approvals']),
+        })),
+        catchError(() => of({})),
+      );
+  }
+
+  private liveHealth(): Observable<SystemHealth> {
+    const icons: Record<string, string> = { api: 'api', db: 'database', redis: 'memory', diskSpace: 'hard_drive', ping: 'network_ping' };
+    const names: Record<string, string> = { api: 'API gateway', db: 'PostgreSQL', redis: 'Redis', diskSpace: 'Disk space', ping: 'Heartbeat' };
+    const started = performance.now();
+    return this.http
+      .get<{ name: string; state: HealthState }[]>(this.api('admin/dashboard/health'), { headers: { 'X-Quiet': '1' } })
+      .pipe(
+        catchError(() => of([{ name: 'api', state: HealthState.Down }])),
+        map((items) => {
+          const latency = Math.round(performance.now() - started);
+          const now = new Date().toISOString();
+          const components = items
+            .filter((item) => item.name !== 'ssl')
+            .map((item) => ({
+              id: item.name,
+              name: names[item.name] ?? item.name,
+              state: item.state,
+              latencyMs: item.name === 'api' ? latency : 0,
+              uptimePercent: item.state === HealthState.Healthy ? 100 : 0,
+              message: item.state === HealthState.Healthy ? 'Operating normally' : 'Needs attention',
+              icon: icons[item.name] ?? 'monitor_heart',
+              lastCheckedAt: now,
+              history: [],
+            }));
+          const overall = components.some((c) => c.state === HealthState.Down)
+            ? HealthState.Down
+            : components.some((c) => c.state !== HealthState.Healthy)
+              ? HealthState.Degraded
+              : HealthState.Healthy;
+          return {
+            overall,
+            checkedAt: now,
+            components,
+            cpuPercent: 0,
+            memoryPercent: 0,
+            diskPercent: 0,
+            activeSessions: 0,
+            requestsPerMinute: 0,
+            errorRatePercent: 0,
+          };
+        }),
+      );
+  }
+
+  private liveLoad(): Observable<DashboardSnapshot> {
+    type Row = Record<string, unknown>;
+    return forkJoin({
+      overview: this.http.get<Row>(this.api('admin/dashboard')),
+      draws: this.http
+        .get<{ content: Draw[] }>(this.api('admin/draws'), {
+          params: { status: 'SCHEDULED,SALES_OPEN,SALES_CLOSED,DRAWING', sort: 'scheduledAt', direction: 'asc', size: '6' },
+          headers: { 'X-Quiet': '1' },
+        })
+        .pipe(
+          map((page) => page.content),
+          catchError(() => of([] as Draw[])),
+        ),
+      announcements: this.http
+        .get<Row[]>(this.api('public/content'), {
+          params: { type: 'ANNOUNCEMENT', audience: 'ADMIN' },
+          headers: { 'X-Quiet': '1' },
+        })
+        .pipe(catchError(() => of([] as Row[]))),
+      health: this.liveHealth(),
+    }).pipe(
+      map(({ overview, draws, announcements, health }) => {
+        const trend = (overview['salesTrend'] as Row[]) ?? [];
+        const labels = trend.map((bucket) => String(bucket['label']).slice(5));
+        const breakdown = (key: string, label: string, field: 'sales' | 'tickets'): ChartSeriesData => {
+          const rows = (overview[key] as Row[]) ?? [];
+          return {
+            labels: rows.map((row) => String(row['key']).replace(/_/g, ' ')),
+            series: [{ label, data: rows.map((row) => num(row[field])) }],
+          };
+        };
+        return {
+          metrics: ((overview['metrics'] as Row[]) ?? []).map((metric) => ({
+            id: String(metric['id']).replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`),
+            label: String(metric['label']),
+            value: num(metric['value']),
+            unit: (metric['unit'] as string | undefined) ?? undefined,
+            icon: String(metric['icon']),
+            tone: metric['tone'] as StatMetric['tone'],
+            delta: metric['delta'] === null || metric['delta'] === undefined ? undefined : num(metric['delta']),
+            deltaLabel: metric['delta'] === null || metric['delta'] === undefined ? undefined : 'vs yesterday',
+            trend: (metric['trend'] as TrendDirection | undefined) ?? TrendDirection.Flat,
+            route: (metric['route'] as string | undefined) ?? undefined,
+          })),
+          salesTrend: {
+            labels,
+            series: [
+              { label: 'Sales', data: trend.map((bucket) => num(bucket['sales'])), fill: true },
+              { label: 'Payouts', data: trend.map((bucket) => num(bucket['prizes']) + num(bucket['tax'])), fill: true },
+            ],
+          },
+          productMix: breakdown('salesByLottery', 'Sales by product', 'sales'),
+          channelSplit: breakdown('salesByChannel', 'Tickets by channel', 'tickets'),
+          revenueVsPayout: {
+            labels,
+            series: [
+              { label: 'Sales', data: trend.map((bucket) => num(bucket['sales'])), type: 'bar' as const },
+              { label: 'Payouts', data: trend.map((bucket) => num(bucket['prizes']) + num(bucket['tax'])), type: 'bar' as const },
+              { label: 'Commission', data: trend.map((bucket) => num(bucket['commission'])), type: 'line' as const },
+            ],
+          },
+          provinceSales: breakdown('salesByProvince', 'Sales by province', 'sales'),
+          recentWinners: ((overview['recentWinners'] as Row[]) ?? []).map((winner) => ({
+            id: String(winner['id']),
+            ticketNumber: String(winner['ticketNumber']),
+            customerName: String(winner['customerName'] ?? 'Walk-in customer'),
+            customerAvatar: PLACEHOLDER.avatar(String(winner['customerName'] ?? 'Winner')),
+            lotteryName: String(winner['lotteryName']),
+            drawCode: String(winner['drawCode']),
+            tier: 'FIRST',
+            prizeAmount: num(winner['prizeAmount']),
+            province: String(winner['province'] ?? ''),
+            wonAt: String(winner['wonAt']),
+            claimStatus: winner['claimStatus'],
+          })) as WinnerSummary[],
+          recentTickets: ((overview['recentTickets'] as Row[]) ?? []).map((ticket) => ({
+            ...ticket,
+            customerName: ticket['customerName'] ?? 'Walk-in customer',
+            lines: [],
+            drawCode: '',
+          })) as unknown as Ticket[],
+          latestTransactions: ((overview['latestTransactions'] as WalletTransaction[]) ?? []),
+          upcomingDraws: draws.map((draw) => ({ ...draw, winningNumbers: draw.winningNumbers ?? [] })),
+          announcements: announcements.map((item) => ({
+            id: String(item['id']),
+            title: String(item['title']),
+            message: String(item['body'] ?? ''),
+            severity: item['pinned'] ? Severity.Medium : Severity.Info,
+            icon: 'campaign',
+            link: (item['linkUrl'] as string | undefined) ?? undefined,
+            linkLabel: item['linkUrl'] ? 'Open' : undefined,
+            startsAt: String(item['startAt'] ?? item['createdAt']),
+            endsAt: String(item['endAt'] ?? ''),
+            dismissible: true,
+            pinned: Boolean(item['pinned']),
+          })),
+          health,
         };
       }),
     );

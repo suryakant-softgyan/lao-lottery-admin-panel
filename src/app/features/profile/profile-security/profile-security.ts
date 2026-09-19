@@ -9,6 +9,8 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AuthService } from '@core/authentication/auth.service';
 import { VALIDATION_LIMITS } from '@core/constants/app.constants';
 import { mockDataset } from '@core/mock/dataset';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '@env/environment';
 import type { DeviceHistoryEntry } from '@core/models';
 import { ConfirmService } from '@core/services/confirm.service';
 import { ToastService } from '@core/services/toast.service';
@@ -46,8 +48,29 @@ export class ProfileSecurity {
   protected readonly user = computed(() => this.auth.user());
 
   protected readonly devices = signal<DeviceHistoryEntry[]>(
-    mockDataset.deviceHistory(this.auth.user()?.id ?? 'me'),
+    environment.useMockData ? mockDataset.deviceHistory(this.auth.user()?.id ?? 'me') : [],
   );
+
+  private readonly liveDevices = environment.useMockData
+    ? null
+    : inject(HttpClient)
+        .get<Record<string, unknown>[]>(`${environment.apiBaseUrl}/me/devices`)
+        .subscribe((rows) =>
+          this.devices.set(
+            rows.map((row) => ({
+              id: String(row['id']),
+              deviceId: String(row['deviceId']),
+              deviceName: `${String(row['deviceName'] ?? row['deviceId'])}${row['current'] ? ' (this device)' : ''}`,
+              deviceType: (row['deviceType'] ?? 'WEB') as DeviceHistoryEntry['deviceType'],
+              os: String(row['os'] ?? '—'),
+              appVersion: (row['appVersion'] as string | undefined) ?? undefined,
+              firstSeenAt: String(row['firstSeenAt']),
+              lastSeenAt: String(row['lastSeenAt']),
+              trusted: Boolean(row['trusted']),
+              active: Boolean(row['active']),
+            })),
+          ),
+        );
 
   protected readonly form = this.fb.nonNullable.group(
     {

@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '@env/environment';
 import { HealthState } from '@core/enums';
 import { mockDataset } from '@core/mock/dataset';
+import type { SystemHealth } from '@core/models';
+import { DashboardService } from '@features/dashboard/data/dashboard.service';
 import { ThemeService } from '@core/services/theme.service';
 
 /** Application footer with branding, version and a live health indicator. */
@@ -104,7 +106,19 @@ export class Footer {
   protected readonly branding = computed(() => this.theme.branding());
 
   /** Snapshot taken once — the dashboard owns the live polling view. */
-  private readonly health = mockDataset.systemHealth;
+  private readonly healthSignal = signal(mockDataset.systemHealth);
+
+  private get health(): SystemHealth {
+    return this.healthSignal();
+  }
+
+  constructor() {
+    if (!environment.useMockData) {
+      inject(DashboardService)
+        .health()
+        .subscribe((health) => this.healthSignal.set(health));
+    }
+  }
 
   protected readonly healthTone = computed(() => {
     switch (this.health.overall) {

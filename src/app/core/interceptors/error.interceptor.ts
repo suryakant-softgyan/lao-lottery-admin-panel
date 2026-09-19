@@ -23,11 +23,15 @@ function describe(error: HttpErrorResponse): { title: string; message: string; r
         retriable: false,
       };
     case 401:
-      return { title: 'Session expired', message: 'Please sign in again to continue.', retriable: false };
+      return {
+        title: 'Not signed in',
+        message: serverMessage(error, 'Please sign in again to continue.'),
+        retriable: false,
+      };
     case 403:
       return {
         title: 'Access denied',
-        message: 'You do not have permission to perform that action.',
+        message: serverMessage(error, 'You do not have permission to perform that action.'),
         retriable: false,
       };
     case 404:
@@ -72,7 +76,11 @@ function describe(error: HttpErrorResponse): { title: string; message: string; r
 function serverMessage(error: HttpErrorResponse, fallback: string): string {
   const body = error.error as { message?: string; error?: string } | string | null;
   if (typeof body === 'string' && body.trim()) {
-    return body;
+    // An HTML page instead of JSON means the request never reached the API (dev proxy not active,
+    // wrong base URL, gateway error page) — never show markup to the user.
+    return /^\s*<(!doctype|html)/i.test(body)
+      ? 'The API could not be reached. Check that the backend is running and the dev server was started with the proxy (npm start).'
+      : body;
   }
   if (body && typeof body === 'object') {
     return body.message ?? body.error ?? fallback;
@@ -107,7 +115,10 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
         code: (error.error as { code?: string } | null)?.code ?? `HTTP_${error.status}`,
         message: described.message,
         details: error.message,
-        traceId: error.headers?.get('X-Correlation-Id') ?? undefined,
+        traceId:
+          (error.error as { traceId?: string } | null)?.traceId ??
+          error.headers?.get('X-Trace-Id') ??
+          undefined,
         timestamp: new Date().toISOString(),
         retriable: described.retriable,
       };

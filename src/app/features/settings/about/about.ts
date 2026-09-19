@@ -10,6 +10,7 @@ import type { SystemHealth } from '@core/models';
 import { FeatureFlagService } from '@core/services/feature-flag.service';
 import { ThemeService } from '@core/services/theme.service';
 import { mockDataset } from '@core/mock/dataset';
+import { DashboardService } from '@features/dashboard/data/dashboard.service';
 import { InfoList, type InfoItem } from '@shared/components/info-list/info-list';
 import { PageHeader } from '@shared/components/page-header/page-header';
 import { StatusBadge } from '@shared/components/status-badge/status-badge';
@@ -33,6 +34,13 @@ export class About {
 
   protected readonly branding = computed(() => this.theme.branding());
   protected readonly health = signal<SystemHealth>(mockDataset.systemHealth);
+  private readonly dashboard = inject(DashboardService);
+
+  constructor() {
+    if (!environment.useMockData) {
+      this.refreshHealth();
+    }
+  }
 
   protected readonly buildItems = computed<InfoItem[]>(() => [
     { label: 'Application', value: this.branding().applicationName, icon: 'apps' },
@@ -85,6 +93,10 @@ export class About {
   });
 
   protected refreshHealth(): void {
-    this.health.set(mockDataset.systemHealth);
+    if (environment.useMockData) {
+      this.health.set(mockDataset.systemHealth);
+      return;
+    }
+    this.dashboard.health().subscribe((health) => this.health.set(health));
   }
 }

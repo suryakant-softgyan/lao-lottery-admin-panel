@@ -3,6 +3,7 @@ import type { HttpInterceptorFn } from '@angular/common/http';
 import { apiUrlInterceptor } from './api-url.interceptor';
 import { authInterceptor } from './auth.interceptor';
 import { cacheInterceptor } from './cache.interceptor';
+import { envelopeInterceptor } from './envelope.interceptor';
 import { errorInterceptor } from './error.interceptor';
 import { loadingInterceptor } from './loading.interceptor';
 import { retryInterceptor } from './retry.interceptor';
@@ -10,6 +11,7 @@ import { retryInterceptor } from './retry.interceptor';
 export * from './api-url.interceptor';
 export * from './auth.interceptor';
 export * from './cache.interceptor';
+export * from './envelope.interceptor';
 export * from './error.interceptor';
 export * from './loading.interceptor';
 export * from './retry.interceptor';
@@ -30,4 +32,5 @@ export const HTTP_INTERCEPTORS_CHAIN: HttpInterceptorFn[] = [
   loadingInterceptor,
   retryInterceptor,
   errorInterceptor,
+  envelopeInterceptor,
 ];

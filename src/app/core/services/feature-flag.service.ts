@@ -1,5 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable, catchError, map, of, tap } from 'rxjs';
+
+import { environment } from '@env/environment';
 
 import { DEFAULT_FEATURE_FLAGS } from '../constants/feature-flags.constants';
 import { STORAGE_KEYS } from '../constants/app.constants';
@@ -19,6 +22,7 @@ import { StorageService } from './storage.service';
 export class FeatureFlagService {
   private readonly storage = inject(StorageService);
   private readonly backend = inject(MockBackendService);
+  private readonly http = inject(HttpClient);
 
   private readonly flags = signal<FeatureFlag[]>(
     this.storage.get<FeatureFlag[]>(STORAGE_KEYS.featureFlags, DEFAULT_FEATURE_FLAGS),
@@ -70,10 +74,21 @@ export class FeatureFlagService {
 
   /** Loads the flag set. Swap the body for an HTTP call when the API exists. */
   load(): Observable<FeatureFlag[]> {
+    if (!environment.useMockData) {
+      return this.liveLoad();
+    }
     return this.backend.respond(() => this.flags());
   }
 
   setEnabled(key: string, enabled: boolean, actor = 'Administrator'): void {
+    if (!environment.useMockData) {
+      // Shared with every administrator: the server is the source of truth, local storage only a cache.
+      this.http
+        .put(`${environment.apiBaseUrl}/admin/feature-flags/${encodeURIComponent(key)}`, null, {
+          params: { enabled: String(enabled) },
+        })
+        .subscribe({ error: () => this.liveLoad().subscribe() });
+    }
     this.flags.update((current) =>
       current.map((flag) =>
         flag.key === key ? { ...flag, enabled, updatedAt: new Date().toISOString(), updatedBy: actor } : flag,
@@ -100,5 +115,27 @@ export class FeatureFlagService {
 
   private persist(): void {
     this.storage.set(STORAGE_KEYS.featureFlags, this.flags());
+  }
+  /**
+   * Overlays the server-side switches onto the panel's flag catalogue. The anonymous bootstrap endpoint
+   * is used so the flags are already correct on the login screen and for users without `settings.view`.
+   */
+  private liveLoad(): Observable<FeatureFlag[]> {
+    return this.http
+      .get<{ features?: { key: string; enabled: boolean }[] }>(`${environment.apiBaseUrl}/public/bootstrap`, {
+        params: { audience: 'ADMIN' },
+        headers: { 'X-Quiet': '1' },
+      })
+      .pipe(
+        map((bootstrap) => new Map((bootstrap.features ?? []).map((flag) => [flag.key, flag.enabled]))),
+        tap((server) => {
+          this.flags.update((current) =>
+            current.map((flag) => (server.has(flag.key) ? { ...flag, enabled: server.get(flag.key) === true } : flag)),
+          );
+          this.persist();
+        }),
+        map(() => this.flags()),
+        catchError(() => of(this.flags())),
+      );
   }
 }

@@ -70,6 +70,27 @@ export class LotteryList {
     this.load();
   }
 
+  /** Products whose banner URL failed to load — they get the generated banner instead. */
+  protected readonly brokenBanners = signal<ReadonlySet<string>>(new Set());
+
+  protected markBannerBroken(gameId: string): void {
+    this.brokenBanners.update((current) => new Set(current).add(gameId));
+  }
+
+  /**
+   * Digits printed on the generated banner's lottery balls: one ball per digit of the game, stable
+   * per product (derived from its code) so a card looks the same on every visit.
+   */
+  protected bannerDigits(game: LotteryGame): string[] {
+    let seed = 7;
+    for (const char of game.code) {
+      seed = (seed * 31 + char.charCodeAt(0)) % 9973;
+    }
+    return Array.from({ length: Math.min(Math.max(game.digitCount, 1), 6) }, (_, index) =>
+      String((seed + index * 7 + Math.floor(seed / (index + 2))) % 10),
+    );
+  }
+
   protected load(): void {
     this.loading.set(true);
     this.errorMessage.set(null);

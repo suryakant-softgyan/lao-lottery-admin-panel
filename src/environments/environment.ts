@@ -11,14 +11,14 @@ import type { AppEnvironment } from './environment.model';
 export const environment: AppEnvironment = {
   production: false,
   name: 'development',
-  useMockData: true,
+  useMockData: false,
   apiBaseUrl: '/api/v1',
-  wsBaseUrl: 'ws://localhost:8080/ws',
+  wsBaseUrl: '/ws',
   appVersion: '1.0.0',
   buildNumber: 'dev',
   defaultLanguage: 'en',
   supportedLanguages: ['en', 'lo'],
-  defaultTenantId: 'lao-national-lottery',
+  defaultTenantId: 'LAO_NATIONAL',
   multiTenant: true,
   session: {
     /** Absolute session lifetime in seconds. */

@@ -32,7 +32,22 @@
         <article class="game ll-card ll-card--interactive" [style.--game-colour]="game.colour">
           <!-- Banner -->
           <div class="game__banner">
-            <img [src]="game.bannerUrl" [alt]="game.name" loading="lazy" />
+            <!-- Decorative: the product name is printed below. No banner configured (or a dead link)
+                 gets a generated banner instead of showing alt text. -->
+            @if (game.bannerUrl && !brokenBanners().has(game.id)) {
+              <img [src]="game.bannerUrl" alt="" loading="lazy" (error)="markBannerBroken(game.id)" />
+            } @else {
+              <!-- Generated banner: product colour + a row of lottery balls for the game's digit count -->
+              <div class="game__art" aria-hidden="true">
+                <span class="game__art-ring game__art-ring--lg"></span>
+                <span class="game__art-ring game__art-ring--sm"></span>
+                <div class="game__art-balls">
+                  @for (digit of bannerDigits(game); track $index) {
+                    <span class="game__art-ball" [style.--ball-index]="$index">{{ digit }}</span>
+                  }
+                </div>
+              </div>
+            }
             <div class="game__banner-overlay"></div>
             <div class="game__banner-content">
               <span class="game__digits" aria-hidden="true">{{ game.digitCount }}D</span>

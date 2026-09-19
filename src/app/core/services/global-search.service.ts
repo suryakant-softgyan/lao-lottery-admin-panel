@@ -1,5 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable, catchError, map, of } from 'rxjs';
+
+import { environment } from '@env/environment';
 
 import { PLACEHOLDER } from '../constants/app.constants';
 import { mockDataset } from '../mock/dataset';
@@ -23,8 +26,12 @@ const MAX_PER_TYPE = 5;
 export class GlobalSearchService {
   private readonly backend = inject(MockBackendService);
   private readonly navigation = inject(NavigationService);
+  private readonly http = inject(HttpClient);
 
   search(term: string, types?: readonly SearchEntityType[]): Observable<GlobalSearchResult[]> {
+    if (!environment.useMockData) {
+      return this.liveSearch(term, types);
+    }
     return this.backend.respond(() => this.runSearch(term, types), { latencyMs: 220 });
   }
 
@@ -219,5 +226,55 @@ export class GlobalSearchService {
     }
 
     return [...byType.values()].flat().sort((a, b) => b.score - a.score);
+  }
+  // =====================================================================================
+  // Live API: records come from `/admin/search` (permission aware); pages are matched locally
+  // =====================================================================================
+
+  private liveSearch(term: string, types?: readonly SearchEntityType[]): Observable<GlobalSearchResult[]> {
+    const needle = term.trim();
+    if (needle.length < 2) {
+      return of([]);
+    }
+    const pages = this.runSearch(needle, ['page']);
+    const wanted = (type: SearchEntityType): boolean => !types?.length || types.includes(type);
+    const kinds: Record<string, { type: SearchEntityType; icon: string; route: (id: string) => string }> = {
+      USER: { type: 'user', icon: 'person', route: (id) => `/users/details/${id}` },
+      AGENT: { type: 'agent', icon: 'support_agent', route: (id) => `/agents/details/${id}` },
+      RETAILER: { type: 'retailer', icon: 'store', route: (id) => `/retailers/details/${id}` },
+      TICKET: { type: 'ticket', icon: 'confirmation_number', route: (id) => `/tickets/details/${id}` },
+      WALLET_TRANSACTION: { type: 'transaction', icon: 'swap_horiz', route: () => '/wallet/transactions' },
+      PAYMENT: { type: 'transaction', icon: 'payments', route: () => '/payment' },
+    };
+    return this.http
+      .get<{ type: string; id: string; title: string; subtitle: string; status: string }[]>(
+        `${environment.apiBaseUrl}/admin/search`,
+        { params: { q: needle, perType: String(MAX_PER_TYPE) }, headers: { 'X-Quiet': '1' } },
+      )
+      .pipe(
+        catchError(() => of([])),
+        map((hits) => {
+          const records = hits.flatMap((hit) => {
+            const kind = kinds[hit.type];
+            if (!kind || !wanted(kind.type)) {
+              return [];
+            }
+            return [
+              {
+                id: hit.id,
+                type: kind.type,
+                title: hit.title,
+                subtitle: hit.subtitle,
+                meta: hit.status,
+                icon: kind.icon,
+                avatarUrl: kind.type === 'user' ? PLACEHOLDER.avatar(hit.title) : undefined,
+                route: kind.route(hit.id),
+                score: this.score(hit.title, needle) || 30,
+              } satisfies GlobalSearchResult,
+            ];
+          });
+          return [...(wanted('page') ? pages : []), ...records].sort((a, b) => b.score - a.score);
+        }),
+      );
   }
 }

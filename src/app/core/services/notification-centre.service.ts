@@ -1,5 +1,9 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+
+import { StompLite, resolveWsUrl } from '../api/stomp-lite';
+import { TokenService } from '../authentication/token.service';
 
 import { environment } from '@env/environment';
 import { FEATURE_FLAGS } from '../constants/feature-flags.constants';
@@ -22,6 +26,8 @@ import { ToastService } from './toast.service';
  * server pushing a new notification every so often so the live behaviour can be
  * seen without a backend.
  */
+const QUIET = { headers: { 'X-Quiet': '1' } };
+
 @Injectable({ providedIn: 'root' })
 export class NotificationCentreService {
   private readonly backend = inject(MockBackendService);
@@ -30,7 +36,14 @@ export class NotificationCentreService {
   private readonly featureFlags = inject(FeatureFlagService);
   private readonly destroyRef = inject(DestroyRef);
 
-  private readonly items = signal<NotificationMessage[]>(mockDataset.notifications);
+  private readonly items = signal<NotificationMessage[]>(environment.useMockData ? mockDataset.notifications : []);
+  private readonly http = inject(HttpClient);
+  private readonly tokens = inject(TokenService);
+  private stomp: StompLite | null = null;
+  private poller: ReturnType<typeof setInterval> | null = null;
+
+  /** True while the real-time channel is up (the UI can show a "live" dot). */
+  readonly realtime = signal(false);
   private socket: WebSocket | null = null;
   private simulator: ReturnType<typeof setInterval> | null = null;
   private sequence = 0;
@@ -59,6 +72,9 @@ export class NotificationCentreService {
   }
 
   markRead(id: string): void {
+    if (!environment.useMockData) {
+      this.http.post(this.api(`${id}/read`), {}, QUIET).subscribe({ error: () => undefined });
+    }
     this.items.update((current) =>
       current.map((item) =>
         item.id === id && !item.read ? { ...item, read: true, readAt: new Date().toISOString() } : item,
@@ -67,6 +83,9 @@ export class NotificationCentreService {
   }
 
   markAllRead(): void {
+    if (!environment.useMockData) {
+      this.http.post(this.api('read-all'), {}, QUIET).subscribe({ error: () => undefined });
+    }
     const now = new Date().toISOString();
     this.items.update((current) =>
       current.map((item) => (item.read ? item : { ...item, read: true, readAt: now })),
@@ -74,6 +93,9 @@ export class NotificationCentreService {
   }
 
   remove(id: string): void {
+    if (!environment.useMockData) {
+      this.http.delete(this.api(id), QUIET).subscribe({ error: () => undefined });
+    }
     this.items.update((current) => current.filter((item) => item.id !== id));
   }
 
@@ -118,20 +140,17 @@ export class NotificationCentreService {
       return;
     }
 
-    try {
-      this.socket = new WebSocket(`${environment.wsBaseUrl}/notifications`);
-      this.socket.onmessage = (event: MessageEvent<string>): void => {
-        const payload = JSON.parse(event.data) as NotificationMessage;
-        this.handleIncoming(payload);
-      };
-      this.socket.onerror = (event): void => this.logger.warn('Notification socket error', event);
-      this.destroyRef.onDestroy(() => this.disconnect());
-    } catch (error) {
-      this.logger.warn('Unable to open the notification socket', error);
-    }
+    this.connectLive();
   }
 
   disconnect(): void {
+    this.stomp?.close();
+    this.stomp = null;
+    this.realtime.set(false);
+    if (this.poller) {
+      clearInterval(this.poller);
+      this.poller = null;
+    }
     this.socket?.close();
     this.socket = null;
     if (this.simulator) {
@@ -225,5 +244,85 @@ export class NotificationCentreService {
     }, 75_000);
 
     this.destroyRef.onDestroy(() => this.disconnect());
+  }
+  // =====================================================================================
+  // Live API: inbox over REST, new messages pushed over STOMP (`/user/queue/notifications`)
+  // =====================================================================================
+
+  private api(path = ''): string {
+    return `${environment.apiBaseUrl}/me/notifications${path ? `/${path}` : ''}`;
+  }
+
+  private connectLive(): void {
+    if (this.stomp) {
+      return;
+    }
+    this.reloadInbox();
+    this.stomp = new StompLite(
+      resolveWsUrl(environment.wsBaseUrl),
+      () => this.tokens.accessToken,
+      { '/user/queue/notifications': (body) => this.handleIncoming(this.fromApi(body as Record<string, unknown>)) },
+      (connected) => this.realtime.set(connected),
+    );
+    this.stomp.open();
+    // Safety net when the socket is blocked by a proxy: refresh the inbox once a minute.
+    this.poller = setInterval(() => {
+      if (!this.realtime()) {
+        this.reloadInbox();
+      }
+    }, 60_000);
+    this.destroyRef.onDestroy(() => this.disconnect());
+  }
+
+  private reloadInbox(): void {
+    if (!this.tokens.hasToken()) {
+      return;
+    }
+    this.http
+      .get<{ content: Record<string, unknown>[] }>(this.api(), { params: { size: '100' }, ...QUIET })
+      .subscribe({
+        next: (page) => this.items.set(page.content.map((row) => this.fromApi(row))),
+        error: (error) => this.logger.warn('Could not load the notification inbox', error),
+      });
+  }
+
+  private fromApi(row: Record<string, unknown>): NotificationMessage {
+    const category = String(row['category'] ?? 'SYSTEM') as NotificationCategory;
+    const routes: Record<string, string> = {
+      Draw: '/draws',
+      Ticket: '/tickets',
+      ApprovalRequest: '/wallet',
+      PaymentTransaction: '/payment',
+      Agent: '/agents/approvals',
+      Retailer: '/retailers',
+      SupportTicket: '/notifications',
+      User: '/users/verification',
+    };
+    const icons: Record<string, string> = {
+      DRAW: 'casino',
+      TRANSACTION: 'payments',
+      SECURITY: 'shield',
+      APPROVAL: 'assignment_turned_in',
+      COMPLIANCE: 'verified_user',
+      MARKETING: 'campaign',
+      SYSTEM: 'notifications',
+    };
+    const created = String(row['createdAt'] ?? new Date().toISOString());
+    return {
+      id: String(row['id']),
+      title: String(row['title'] ?? ''),
+      body: String(row['body'] ?? ''),
+      channel: NotificationChannel.InApp,
+      category,
+      severity: category === NotificationCategory.Approval || category === NotificationCategory.Security ? Severity.High : Severity.Info,
+      status: NotificationStatus.Sent,
+      read: Boolean(row['read']),
+      readAt: (row['readAt'] as string | undefined) ?? undefined,
+      actionUrl: routes[String(row['refType'] ?? '')],
+      actionLabel: routes[String(row['refType'] ?? '')] ? 'Open' : undefined,
+      icon: icons[category] ?? 'notifications',
+      createdAt: created,
+      sentAt: created,
+    };
   }
 }
