@@ -1,0 +1,118 @@
+:host {
+  display: block;
+}
+
+.filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 13px 15px;
+  flex-wrap: wrap;
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 150px;
+
+    label {
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ll-text-muted);
+    }
+
+    select {
+      height: 38px;
+      padding-inline: 11px;
+      border: 1px solid var(--ll-border);
+      border-radius: var(--ll-radius-sm);
+      background: var(--ll-surface);
+      color: var(--ll-text);
+      font-size: 0.84rem;
+      outline: none;
+      cursor: pointer;
+
+      &:focus {
+        border-color: var(--ll-primary);
+        box-shadow: 0 0 0 3px var(--ll-primary-soft);
+      }
+    }
+  }
+
+  .material-symbols-rounded {
+    font-size: 18px;
+    margin-inline-end: 6px;
+  }
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px;
+  padding: 0;
+  background: var(--ll-border);
+  overflow: hidden;
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 15px 17px;
+    background: var(--ll-surface-elevated);
+  }
+
+  &__label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+  }
+
+  &__value {
+    font-size: 1.2rem;
+    font-weight: 750;
+    letter-spacing: -0.03em;
+    color: var(--ll-text);
+  }
+}
+
+.report-table {
+  width: 100%;
+  font-size: 0.84rem;
+
+  th {
+    padding: 11px 14px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+    background: var(--ll-table-header);
+    border-bottom: 1px solid var(--ll-border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--ll-border);
+    white-space: nowrap;
+  }
+
+  tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--ll-surface) 55%, transparent);
+  }
+
+  tbody tr:hover {
+    background: var(--ll-surface-hover);
+  }
+
+  tfoot td {
+    background: var(--ll-surface);
+    border-top: 2px solid var(--ll-border);
+    border-bottom: 0;
+    font-weight: 700;
+  }
+}

@@ -1,0 +1,133 @@
+<div class="palette-backdrop" (click)="close()" aria-hidden="true"></div>
+
+<div
+  class="palette"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Command palette"
+  (keydown)="onKeydown($event)">
+  <!-- Query -->
+  <div class="palette__search">
+    <span class="material-symbols-rounded" aria-hidden="true">search</span>
+    <input
+      llAutofocus
+      type="text"
+      placeholder="Search pages, users, agents, tickets — or type a command…"
+      aria-label="Command palette query"
+      [ngModel]="term()"
+      (ngModelChange)="onTermChange($event)" />
+    <button type="button" class="palette__close" aria-label="Close" (click)="close()">
+      <kbd>Esc</kbd>
+    </button>
+  </div>
+
+  <div class="palette__body">
+    @if (showShortcuts()) {
+      <section class="palette__section">
+        <h3 class="palette__section-title">Keyboard shortcuts</h3>
+        <ul class="palette__shortcuts" role="list">
+          @for (shortcut of shortcuts; track shortcut.keys) {
+            <li>
+              <span class="palette__shortcut-desc">{{ shortcut.description }}</span>
+              <span class="palette__shortcut-scope">{{ shortcut.scope }}</span>
+              <kbd>{{ shortcut.keys }}</kbd>
+            </li>
+          }
+        </ul>
+      </section>
+    } @else {
+      <!-- Recent -->
+      @if (recent().length) {
+        <section class="palette__section">
+          <h3 class="palette__section-title">Recently visited</h3>
+          @for (page of recent(); track page.route) {
+            <button type="button" class="palette__item" (click)="openRecent(page.route)">
+              <span class="palette__item-icon material-symbols-rounded" aria-hidden="true">
+                {{ page.icon }}
+              </span>
+              <span class="palette__item-body">
+                <span class="palette__item-title">{{ page.label }}</span>
+              </span>
+              <span class="palette__item-hint">Recent</span>
+            </button>
+          }
+        </section>
+      }
+
+      <!-- Commands -->
+      @if (commands().length) {
+        <section class="palette__section">
+          <h3 class="palette__section-title">Commands</h3>
+          @for (command of commands(); track command.id) {
+            <button
+              type="button"
+              class="palette__item"
+              [class.palette__item--active]="isActive(command.id)"
+              (click)="runCommand(command)">
+              <span class="palette__item-icon material-symbols-rounded" aria-hidden="true">
+                {{ command.icon }}
+              </span>
+              <span class="palette__item-body">
+                <span class="palette__item-title">{{ command.label }}</span>
+                @if (command.description) {
+                  <span class="palette__item-sub">{{ command.description }}</span>
+                }
+              </span>
+              @if (command.shortcut) {
+                <kbd>{{ command.shortcut }}</kbd>
+              }
+            </button>
+          }
+        </section>
+      }
+
+      <!-- Search results -->
+      @for (group of groups(); track group.type) {
+        <section class="palette__section">
+          <h3 class="palette__section-title">{{ group.label }}</h3>
+          @for (result of group.items; track result.id) {
+            <button
+              type="button"
+              class="palette__item"
+              [class.palette__item--active]="isActive(result.id)"
+              (click)="openResult(result)">
+              @if (result.avatarUrl) {
+                <ll-avatar [name]="result.title" [src]="result.avatarUrl" [size]="28" />
+              } @else {
+                <span class="palette__item-icon material-symbols-rounded" aria-hidden="true">
+                  {{ typeIcon(result.type) }}
+                </span>
+              }
+              <span class="palette__item-body">
+                <span class="palette__item-title">{{ result.title }}</span>
+                <span class="palette__item-sub">{{ result.subtitle }}</span>
+              </span>
+              @if (result.meta) {
+                <span class="palette__item-hint">{{ result.meta }}</span>
+              }
+            </button>
+          }
+        </section>
+      }
+
+      @if (isEmpty()) {
+        <div class="palette__empty">
+          <span class="material-symbols-rounded" aria-hidden="true">search_off</span>
+          <p>No matches for “{{ term() }}”.</p>
+          <small>Try a ticket number, an agent code, a phone number or a page name.</small>
+        </div>
+      }
+    }
+  </div>
+
+  <!-- Footer -->
+  <footer class="palette__footer">
+    <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+    <span><kbd>↵</kbd> open</span>
+    <span><kbd>Esc</kbd> close</span>
+    <span class="ll-spacer"></span>
+    <button type="button" (click)="showShortcuts.set(!showShortcuts())">
+      {{ showShortcuts() ? 'Back to search' : 'Keyboard shortcuts' }}
+    </button>
+  </footer>
+</div>

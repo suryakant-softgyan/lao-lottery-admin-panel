@@ -1,0 +1,101 @@
+<div class="ll-page">
+  <ll-page-header
+    [title]="copy.title"
+    eyebrow="Compliance"
+    [subtitle]="copy.subtitle"
+    [icon]="copy.icon"
+    [stats]="[{ label: 'Entries', value: total().toLocaleString(), icon: 'gavel' }]" />
+
+  @if (summary().length) {
+    <section class="ll-grid ll-grid--auto ll-stagger" aria-label="Audit statistics">
+      @for (metric of summary(); track metric.id) {
+        <ll-stat-card [metric]="metric" />
+      }
+    </section>
+  }
+
+  <ll-list-toolbar
+    searchPlaceholder="Search by actor, description, module, entity, IP or request id…"
+    [quickFilters]="quickFilters"
+    [showDateRange]="true"
+    [refreshing]="loading()"
+    (searchChange)="onSearch($event)"
+    (quickChange)="onQuickFilter($event)"
+    (rangeChange)="onDateRange($event)"
+    (refresh)="refreshAll()"
+    (export)="onExport($event)"
+    (clear)="onClearFilters()" />
+
+  <div class="audit" [class.audit--split]="expanded()">
+    <div class="audit__table">
+      <ll-data-table
+        tableId="audit-log"
+        [columns]="columns"
+        [page]="page()"
+        [loading]="loading()"
+        [error]="errorMessage()"
+        [sort]="query().sort ?? { active: '', direction: '' }"
+        [filtered]="isFiltered()"
+        [rowActions]="rowActions"
+        [selectable]="false"
+        emptyTitle="No audit entries"
+        emptyMessage="Actions performed in the portal are recorded here automatically."
+        (sortChange)="onSort($event)"
+        (pageChange)="onPage($event)"
+        (rowAction)="onRowAction($event)"
+        (rowClick)="onRowClick($event)"
+        (retry)="reload()" />
+    </div>
+
+    <!-- Inspector -->
+    @if (expanded(); as log) {
+      <aside class="inspector ll-card">
+        <header class="inspector__head">
+          <div class="inspector__title">
+            <span
+              class="inspector__icon material-symbols-rounded"
+              [class.inspector__icon--failed]="!log.success"
+              aria-hidden="true">
+              {{ log.success ? 'task_alt' : 'error' }}
+            </span>
+            <div>
+              <h3>{{ humanise(log.action) }} · {{ log.module }}</h3>
+              <p>{{ log.entityLabel ?? log.entityType }}</p>
+            </div>
+          </div>
+          <button type="button" class="inspector__close" aria-label="Close inspector" (click)="closeDetail()">
+            <span class="material-symbols-rounded" aria-hidden="true">close</span>
+          </button>
+        </header>
+
+        <div class="inspector__body">
+          <ll-info-list [items]="detailItems()" [columns]="1" />
+
+          <!-- Field-level diff -->
+          @if (log.changes?.length) {
+            <h4 class="inspector__section">Field changes</h4>
+            <div class="diff">
+              @for (change of log.changes ?? []; track change.field) {
+                <div class="diff__row">
+                  <span class="diff__field">{{ humanise(change.field) }}</span>
+                  <div class="diff__values">
+                    <span class="diff__old">{{ change.oldValue }}</span>
+                    <span class="material-symbols-rounded diff__arrow" aria-hidden="true">
+                      arrow_forward
+                    </span>
+                    <span class="diff__new">{{ change.newValue }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="inspector__no-diff">
+              <span class="material-symbols-rounded" aria-hidden="true">info</span>
+              No field-level changes were recorded for this entry.
+            </p>
+          }
+        </div>
+      </aside>
+    }
+  </div>
+</div>

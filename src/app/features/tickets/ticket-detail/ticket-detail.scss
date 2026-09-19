@@ -1,0 +1,309 @@
+:host {
+  display: block;
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: var(--ll-radius);
+  border: 1px solid var(--ll-warning-border);
+  background: var(--ll-warning-soft);
+  color: var(--ll-warning);
+
+  .material-symbols-rounded {
+    font-size: 22px;
+    flex: 0 0 auto;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  strong {
+    font-size: 0.86rem;
+  }
+
+  span {
+    font-size: 0.79rem;
+    line-height: 1.5;
+    color: var(--ll-text-secondary);
+  }
+}
+
+.ticket-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: var(--ll-gap);
+  align-items: start;
+
+  &__main {
+    display: grid;
+    gap: var(--ll-gap);
+  }
+}
+
+/* ------------------------------------------------------- printable stub */
+
+.stub {
+  position: sticky;
+  top: calc(var(--ll-header-height) + 12px);
+  overflow: hidden;
+  padding: 0;
+
+  &__head {
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    padding: 18px 16px 14px;
+    background: var(--ll-gradient-primary);
+    color: var(--ll-primary-contrast);
+    text-align: center;
+  }
+
+  &__brand {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    opacity: 0.9;
+  }
+
+  &__type {
+    font-size: 1.02rem;
+    font-weight: 720;
+    letter-spacing: -0.02em;
+  }
+
+  /* Perforated edge — a small nod to the physical artefact. */
+  &__perforation {
+    height: 12px;
+    background: radial-gradient(circle at 6px 6px, var(--ll-background) 5px, transparent 6px) repeat-x;
+    background-size: 12px 12px;
+  }
+
+  &__body {
+    padding: 4px 16px 14px;
+  }
+
+  &__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0;
+    font-size: 0.78rem;
+
+    span {
+      color: var(--ll-text-muted);
+    }
+
+    strong {
+      font-weight: 650;
+    }
+  }
+
+  &__lines {
+    display: grid;
+    gap: 9px;
+    margin: 12px 0;
+    padding: 12px 0;
+    border-block: 1px dashed var(--ll-border);
+  }
+
+  &__line {
+    display: grid;
+    gap: 6px;
+    padding: 10px 11px;
+    border-radius: var(--ll-radius-sm);
+    background: var(--ll-surface);
+    border: 1px solid var(--ll-border);
+
+    &--won {
+      background: var(--ll-success-soft);
+      border-color: var(--ll-success-border);
+    }
+  }
+
+  &__numbers {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+  }
+
+  &__digit {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 36px;
+    border-radius: 7px;
+    background: var(--ll-surface-elevated);
+    border: 1px solid var(--ll-border);
+    font-family: ui-monospace, monospace;
+    font-size: 1.06rem;
+    font-weight: 780;
+    color: var(--ll-primary);
+  }
+
+  &__line-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.73rem;
+    color: var(--ll-text-muted);
+
+    strong {
+      color: var(--ll-text);
+      font-weight: 650;
+    }
+  }
+
+  &__won {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--ll-success);
+
+    .material-symbols-rounded {
+      font-size: 15px;
+    }
+  }
+
+  &__totals {
+    display: grid;
+    gap: 4px;
+
+    div {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.79rem;
+
+      span {
+        color: var(--ll-text-muted);
+      }
+
+      strong {
+        font-weight: 700;
+      }
+    }
+  }
+
+  &__net {
+    margin-top: 5px;
+    padding-top: 7px;
+    border-top: 1px solid var(--ll-border);
+
+    strong {
+      font-size: 1rem;
+      color: var(--ll-success);
+    }
+  }
+
+  /* Barcode placeholder — swap for a symbology renderer when available. */
+  &__code {
+    display: grid;
+    justify-items: center;
+    gap: 5px;
+    padding: 10px 16px 14px;
+  }
+
+  &__barcode {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    height: 46px;
+
+    span {
+      background: var(--ll-text);
+      border-radius: 1px;
+    }
+  }
+
+  &__barcode-value {
+    font-size: 0.76rem;
+    letter-spacing: 0.24em;
+    color: var(--ll-text-secondary);
+  }
+
+  &__qr {
+    font-size: 0.62rem;
+    color: var(--ll-text-muted);
+    word-break: break-all;
+    text-align: center;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 16px 14px;
+    border-top: 1px solid var(--ll-border);
+    background: var(--ll-surface);
+    flex-wrap: wrap;
+  }
+}
+
+.lines-table {
+  width: 100%;
+  font-size: 0.83rem;
+
+  th {
+    padding: 10px 14px;
+    text-align: start;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+    background: var(--ll-table-header);
+    border-bottom: 1px solid var(--ll-border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--ll-border);
+    white-space: nowrap;
+  }
+
+  &__row--won {
+    background: color-mix(in srgb, var(--ll-success) 7%, transparent);
+  }
+
+  tbody tr:hover {
+    background: var(--ll-surface-hover);
+  }
+}
+
+@media (max-width: 1100px) {
+  .ticket-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stub {
+    position: static;
+  }
+}
+
+@media print {
+  .ticket-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ticket-layout__main {
+    display: none;
+  }
+
+  .stub {
+    position: static;
+    max-width: 320px;
+    margin-inline: auto;
+  }
+}

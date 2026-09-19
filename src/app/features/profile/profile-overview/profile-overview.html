@@ -1,0 +1,133 @@
+<div class="ll-page">
+  @if (user(); as me) {
+    <ll-page-header
+      [title]="me.fullName"
+      eyebrow="My Profile"
+      [subtitle]="(me.designation ?? 'Operator') + ' · ' + (me.department ?? me.tenantName)"
+      icon="account_circle"
+      [compact]="true"
+      [stats]="[
+        { label: 'Permissions', value: permissionCount().toString(), icon: 'lock_person' },
+        { label: 'Modules', value: accessSummary().length.toString(), icon: 'widgets' },
+        { label: 'Two-factor', value: me.twoFactorEnabled ? 'On' : 'Off', icon: 'security' },
+      ]"
+      [actions]="[
+        { id: 'appearance', label: 'Appearance', icon: 'palette', variant: 'secondary' },
+        { id: 'security', label: 'Password & security', icon: 'lock', variant: 'primary' },
+      ]"
+      (actionSelected)="onHeaderAction($event)" />
+
+    <div class="profile">
+      <aside class="profile__aside">
+        <div class="card ll-card">
+          <div class="card__head">
+            <ll-avatar [name]="me.fullName" [src]="me.avatarUrl" [size]="86" status="success" />
+            <h2>{{ me.fullName }}</h2>
+            <p class="ll-mono">{{ '@' + me.username }}</p>
+            <ll-status-badge [value]="me.primaryRole" [map]="roleMap" />
+          </div>
+
+          <div class="card__body">
+            <span class="card__label">Interface language</span>
+            <div class="languages">
+              @for (language of languages; track language.value) {
+                <button
+                  type="button"
+                  class="language"
+                  [class.language--active]="translation.current() === language.value"
+                  (click)="setLanguage($any(language.value))">
+                  <span aria-hidden="true">{{ language.icon }}</span>
+                  {{ language.label }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="card__footer">
+            <a mat-stroked-button routerLink="/profile/security">
+              <span class="material-symbols-rounded" aria-hidden="true">lock</span>
+              Password &amp; security
+            </a>
+          </div>
+        </div>
+
+        <!-- Access summary -->
+        <div class="ll-card">
+          <header class="ll-card__header">
+            <div>
+              <h3 class="ll-card__title">Your access</h3>
+              <p class="ll-card__subtitle">{{ permissionCount() }} permissions granted</p>
+            </div>
+          </header>
+          <div class="ll-card__body">
+            <ul class="access" role="list">
+              @for (module of accessSummary(); track module.key) {
+                <li class="access__item">
+                  <span class="material-symbols-rounded" aria-hidden="true">{{ module.icon }}</span>
+                  <span class="access__label">{{ module.label }}</span>
+                  <span class="access__count ll-numeric">{{ module.count }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </aside>
+
+      <div class="profile__main">
+        <section class="ll-card">
+          <header class="ll-card__header">
+            <h3 class="ll-card__title">Profile details</h3>
+          </header>
+          <div class="ll-card__body">
+            <ll-info-list [items]="profileItems()" [columns]="2" />
+          </div>
+        </section>
+
+        <section class="ll-card">
+          <header class="ll-card__header">
+            <div>
+              <h3 class="ll-card__title">Recent sign-ins</h3>
+              <p class="ll-card__subtitle">Review these regularly — report anything you do not recognise.</p>
+            </div>
+          </header>
+          <div class="ll-scroll-x">
+            <table class="history">
+              <thead>
+                <tr>
+                  <th scope="col">When</th>
+                  <th scope="col">Result</th>
+                  <th scope="col">IP address</th>
+                  <th scope="col">Location</th>
+                  <th scope="col">Device</th>
+                  <th scope="col">Browser / OS</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (entry of loginHistory(); track entry.id) {
+                  <tr>
+                    <td>
+                      {{ entry.timestamp | llDate: 'datetime' }}
+                      <small>{{ entry.timestamp | llRelative }}</small>
+                    </td>
+                    <td>
+                      <span
+                        class="ll-badge"
+                        [class.ll-badge--success]="entry.success"
+                        [class.ll-badge--danger]="!entry.success">
+                        {{ entry.success ? 'Success' : entry.failureReason }}
+                      </span>
+                    </td>
+                    <td class="ll-mono">{{ entry.ipAddress }}</td>
+                    <td>{{ entry.location }}</td>
+                    <td>{{ entry.device }}</td>
+                    <td>{{ entry.browser }} · {{ entry.os }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,185 @@
+:host {
+  display: block;
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: var(--ll-radius);
+  border: 1px solid var(--ll-danger-border);
+  background: var(--ll-danger-soft);
+  color: var(--ll-danger);
+
+  .material-symbols-rounded {
+    font-size: 22px;
+    flex: 0 0 auto;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  strong {
+    font-size: 0.86rem;
+  }
+
+  span {
+    font-size: 0.79rem;
+    line-height: 1.5;
+  }
+}
+
+/* ----------------------------------------------------------------- result */
+
+.result {
+  overflow: hidden;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--ll-border);
+    background: var(--ll-surface);
+  }
+
+  &__title {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+
+  &__countdown {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    span {
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--ll-text-muted);
+    }
+  }
+
+  &__board {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 14px;
+    padding: 20px;
+  }
+
+  &__tier {
+    display: grid;
+    gap: 11px;
+    padding: 16px;
+    border-radius: var(--ll-radius);
+    border: 1px solid var(--ll-border);
+    background: var(--ll-surface);
+    text-align: center;
+  }
+
+  &__tier-name {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+  }
+
+  &__balls {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+  }
+
+  /* Lottery balls: the one place a literal circular treatment is warranted. */
+  &__ball {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--ll-gradient-primary);
+    color: var(--ll-primary-contrast);
+    font-size: 1.24rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    box-shadow: var(--ll-shadow-sm);
+  }
+
+  &__tier-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    span {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ll-text-muted);
+    }
+
+    strong {
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+  }
+
+  &__pending {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 26px 20px;
+    flex-wrap: wrap;
+
+    .material-symbols-rounded {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--ll-warning-soft);
+      color: var(--ll-warning);
+      font-size: 24px;
+      flex: 0 0 auto;
+    }
+
+    div {
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    strong {
+      font-size: 0.92rem;
+      font-weight: 660;
+    }
+
+    span {
+      font-size: 0.8rem;
+      color: var(--ll-text-muted);
+      line-height: 1.55;
+    }
+  }
+}
+
+.tab-body {
+  padding: 20px;
+}

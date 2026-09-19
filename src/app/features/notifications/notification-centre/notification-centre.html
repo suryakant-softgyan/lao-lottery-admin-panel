@@ -1,0 +1,123 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Notification Centre"
+    eyebrow="Platform"
+    subtitle="Operational alerts, approvals and system notices delivered in real time."
+    icon="inbox"
+    [stats]="[
+      { label: 'Total', value: all().length.toString(), icon: 'inbox' },
+      { label: 'Unread', value: unreadCount().toString(), icon: 'mark_email_unread' },
+      { label: 'Critical', value: criticalCount().toString(), icon: 'crisis_alert' },
+    ]"
+    [actions]="[
+      { id: 'templates', label: 'Templates', icon: 'description', variant: 'secondary' },
+      { id: 'clear', label: 'Clear all', icon: 'delete_sweep', variant: 'secondary' },
+      { id: 'read-all', label: 'Mark all read', icon: 'done_all', variant: 'primary' },
+    ]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  <div class="centre">
+    <!-- Category rail -->
+    <aside class="centre__rail ll-card">
+      <header class="ll-card__header">
+        <h3 class="ll-card__title">Categories</h3>
+      </header>
+      <ul class="rail" role="list">
+        @for (category of categories; track category.value) {
+          <li>
+            <button
+              type="button"
+              class="rail__item"
+              [class.rail__item--active]="categoryFilter() === category.value"
+              (click)="categoryFilter.set(category.value)">
+              <span class="material-symbols-rounded" aria-hidden="true">{{ category.icon }}</span>
+              <span class="rail__label">{{ category.label }}</span>
+              <span class="rail__count ll-numeric">{{ countFor(category.value) }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+
+      <div class="rail__filter">
+        <button
+          type="button"
+          class="rail__toggle"
+          [class.rail__toggle--on]="unreadOnly()"
+          (click)="unreadOnly.set(!unreadOnly())">
+          <span class="material-symbols-rounded" aria-hidden="true">
+            {{ unreadOnly() ? 'toggle_on' : 'toggle_off' }}
+          </span>
+          Unread only
+        </button>
+      </div>
+    </aside>
+
+    <!-- Feed -->
+    <section class="centre__feed">
+      @if (groups().length === 0) {
+        <div class="ll-card">
+          <ll-state-panel
+            kind="empty"
+            icon="mark_email_read"
+            title="You are all caught up"
+            message="New alerts and approvals will appear here as they happen." />
+        </div>
+      } @else {
+        @for (group of groups(); track group.label) {
+          <div class="feed-group">
+            <h3 class="feed-group__label">{{ group.label }}</h3>
+
+            <ul class="feed" role="list">
+              @for (item of group.items; track item.id) {
+                <li>
+                  <article
+                    class="notice ll-card"
+                    [class.notice--unread]="!item.read"
+                    [style.--tone]="'var(--ll-' + severityTone(item.severity) + ')'"
+                    (click)="open(item)">
+                    <span class="notice__icon material-symbols-rounded" aria-hidden="true">
+                      {{ item.icon }}
+                    </span>
+
+                    <div class="notice__body">
+                      <div class="notice__head">
+                        <h4 class="notice__title">{{ item.title }}</h4>
+                        <time class="notice__time" [attr.datetime]="item.createdAt">
+                          {{ item.createdAt | llRelative }}
+                        </time>
+                      </div>
+                      <p class="notice__text">{{ item.body }}</p>
+                      <div class="notice__meta">
+                        <ll-status-badge [value]="item.severity" [map]="severityMap" [showIcon]="false" />
+                        <ll-status-badge [value]="item.channel" [map]="channelMap" [showIcon]="false" />
+                        @if (item.actionUrl) {
+                          <a
+                            class="notice__link"
+                            [routerLink]="item.actionUrl"
+                            (click)="$event.stopPropagation()">
+                            {{ item.actionLabel ?? 'Open' }}
+                            <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+                          </a>
+                        }
+                      </div>
+                    </div>
+
+                    <button
+                      mat-icon-button
+                      type="button"
+                      class="notice__dismiss"
+                      matTooltip="Dismiss"
+                      aria-label="Dismiss notification"
+                      (click)="dismiss(item, $event)">
+                      <span class="material-symbols-rounded" aria-hidden="true">close</span>
+                    </button>
+                  </article>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      }
+    </section>
+  </div>
+</div>

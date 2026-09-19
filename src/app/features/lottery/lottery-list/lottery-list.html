@@ -1,0 +1,138 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Lottery Types"
+    eyebrow="Operations"
+    subtitle="Every lottery product on sale, its draw rhythm, sales window and prize ladder."
+    icon="casino"
+    [stats]="[
+      { label: 'Products', value: games().length.toString(), icon: 'casino' },
+      { label: 'Active', value: activeCount().toString(), icon: 'play_circle' },
+    ]"
+    [actions]="[
+      { id: 'prizes', label: 'Prize structure', icon: 'emoji_events', variant: 'secondary' },
+      { id: 'configuration', label: 'Configuration', icon: 'tune', variant: 'primary' },
+    ]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  @if (summary().length) {
+    <section class="ll-grid ll-grid--auto ll-stagger" aria-label="Lottery statistics">
+      @for (metric of summary(); track metric.id) {
+        <ll-stat-card [metric]="metric" [currency]="metric.id === 'sales' || metric.id === 'month'" />
+      }
+    </section>
+  }
+
+  @if (loading()) {
+    <ll-skeleton variant="card" [count]="6" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel kind="error" [message]="message" [showRetry]="true" (retry)="load()" />
+  } @else {
+    <section class="games ll-stagger">
+      @for (game of games(); track game.id) {
+        <article class="game ll-card ll-card--interactive" [style.--game-colour]="game.colour">
+          <!-- Banner -->
+          <div class="game__banner">
+            <img [src]="game.bannerUrl" [alt]="game.name" loading="lazy" />
+            <div class="game__banner-overlay"></div>
+            <div class="game__banner-content">
+              <span class="game__digits" aria-hidden="true">{{ game.digitCount }}D</span>
+              <div>
+                <h3 class="game__name">{{ game.name }}</h3>
+                <p class="game__name-lo">{{ game.nameLo }}</p>
+              </div>
+            </div>
+            <div class="game__banner-badges">
+              <ll-status-badge [value]="game.status" [map]="statusMap" [solid]="true" />
+            </div>
+          </div>
+
+          <div class="game__body">
+            <p class="game__description">{{ game.description }}</p>
+
+            <div class="game__stats">
+              <div>
+                <span>Tickets today</span>
+                <strong class="ll-numeric">{{ game.ticketsSoldToday | llNumber }}</strong>
+              </div>
+              <div>
+                <span>Sales today</span>
+                <strong class="ll-numeric">{{ game.salesToday | llCurrency: true }}</strong>
+              </div>
+              <div>
+                <span>Sales (month)</span>
+                <strong class="ll-numeric">{{ game.salesMonth | llCurrency: true }}</strong>
+              </div>
+              <div>
+                <span>Popularity</span>
+                <strong class="ll-numeric">{{ game.popularityScore }}/100</strong>
+              </div>
+            </div>
+
+            <dl class="game__facts">
+              <div>
+                <dt>Type</dt>
+                <dd><ll-status-badge [value]="game.type" [map]="typeMap" [showIcon]="false" /></dd>
+              </div>
+              <div>
+                <dt>Draws</dt>
+                <dd>{{ schedule(game) }}</dd>
+              </div>
+              <div>
+                <dt>Sales window</dt>
+                <dd>{{ game.configuration.openTime }} – {{ game.configuration.closeTime }}</dd>
+              </div>
+              <div>
+                <dt>Cut-off</dt>
+                <dd>{{ game.configuration.cutOffMinutes }} min before draw</dd>
+              </div>
+              <div>
+                <dt>Stake range</dt>
+                <dd>
+                  {{ game.configuration.minStake | llCurrency }} –
+                  {{ game.configuration.maxStake | llCurrency: true }}
+                </dd>
+              </div>
+              <div>
+                <dt>Tax</dt>
+                <dd>{{ game.configuration.taxPercent }}%</dd>
+              </div>
+            </dl>
+
+            <!-- Prize ladder -->
+            <div class="game__prizes">
+              <span class="game__prizes-label">Prize tiers</span>
+              <ul role="list">
+                @for (tier of game.prizeTiers; track tier.id) {
+                  <li [matTooltip]="tier.matchCriteria">
+                    <span class="game__prize-name">{{ humanise(tier.code) }}</span>
+                    <span class="game__prize-multiplier ll-numeric">×{{ tier.multiplier }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+
+          <footer class="game__footer">
+            <a mat-stroked-button [routerLink]="['/draws']" [queryParams]="{ lotteryId: game.id }">
+              <span class="material-symbols-rounded" aria-hidden="true">stadia_controller</span>
+              Draws
+            </a>
+            <a mat-stroked-button [routerLink]="['/lottery/configuration']" [queryParams]="{ game: game.id }">
+              <span class="material-symbols-rounded" aria-hidden="true">tune</span>
+              Configure
+            </a>
+            @if (permissions.has(PERMISSIONS.lottery.update)) {
+              <button
+                mat-button
+                type="button"
+                [class.game__toggle--pause]="game.status === LotteryStatus.Active"
+                (click)="toggleStatus(game)">
+                {{ game.status === LotteryStatus.Active ? 'Pause sales' : 'Resume sales' }}
+              </button>
+            }
+          </footer>
+        </article>
+      }
+    </section>
+  }
+</div>

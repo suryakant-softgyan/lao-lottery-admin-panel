@@ -1,0 +1,212 @@
+<header class="header" role="banner">
+  <!-- Leading controls -->
+  <div class="header__lead">
+    <button
+      mat-icon-button
+      type="button"
+      class="header__icon-button"
+      matTooltip="Toggle navigation (Ctrl+B)"
+      aria-label="Toggle navigation"
+      (click)="layout.toggleSidebar()">
+      <span class="material-symbols-rounded" aria-hidden="true">menu</span>
+    </button>
+
+    <form class="header__search" role="search" (ngSubmit)="onSearchSubmit($event)">
+      <span class="material-symbols-rounded header__search-icon" aria-hidden="true">search</span>
+      <input
+        type="search"
+        placeholder="Search users, agents, tickets, transactions…"
+        aria-label="Global search"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        name="globalSearch" />
+      <button
+        type="button"
+        class="header__kbd"
+        matTooltip="Command palette"
+        aria-label="Open command palette"
+        (click)="openCommandPalette()">
+        <kbd>Ctrl</kbd><kbd>K</kbd>
+      </button>
+    </form>
+  </div>
+
+  <!-- Trailing controls -->
+  <div class="header__actions">
+    <button
+      mat-icon-button
+      type="button"
+      class="header__icon-button ll-hide-handset"
+      matTooltip="Refresh page data"
+      aria-label="Refresh page data"
+      (click)="refreshPage()">
+      <span class="material-symbols-rounded" aria-hidden="true">refresh</span>
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="header__icon-button ll-hide-handset"
+      [matTooltip]="layout.isFullscreen() ? 'Exit fullscreen' : 'Fullscreen'"
+      aria-label="Toggle fullscreen"
+      (click)="layout.toggleFullscreen()">
+      <span class="material-symbols-rounded" aria-hidden="true">
+        {{ layout.isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}
+      </span>
+    </button>
+
+    <!-- Language -->
+    <button
+      mat-icon-button
+      type="button"
+      class="header__icon-button"
+      matTooltip="Language"
+      aria-label="Change language"
+      [matMenuTriggerFor]="languageMenu">
+      <span class="header__flag" aria-hidden="true">{{ currentLanguage()?.icon }}</span>
+    </button>
+    <mat-menu #languageMenu="matMenu">
+      <div class="menu-heading">Language</div>
+      @for (language of languages; track language.value) {
+        <button mat-menu-item type="button" (click)="translation.use($any(language.value))">
+          <span class="header__flag" aria-hidden="true">{{ language.icon }}</span>
+          <span>{{ language.label }}</span>
+          @if (translation.current() === language.value) {
+            <span class="material-symbols-rounded menu-check" aria-hidden="true">check</span>
+          }
+        </button>
+      }
+    </mat-menu>
+
+    <!-- Theme -->
+    <button
+      mat-icon-button
+      type="button"
+      class="header__icon-button"
+      [matTooltip]="'Appearance: ' + theme.settings().mode"
+      aria-label="Change appearance mode"
+      (click)="cycleMode()">
+      <span class="material-symbols-rounded" aria-hidden="true">{{ modeIcon() }}</span>
+    </button>
+
+    <!-- Messages -->
+    <button
+      mat-icon-button
+      type="button"
+      class="header__icon-button ll-hide-handset"
+      matTooltip="Messages"
+      aria-label="Messages"
+      routerLink="/notifications">
+      <span class="material-symbols-rounded" aria-hidden="true">chat</span>
+    </button>
+
+    <!-- Notifications -->
+    <button
+      mat-icon-button
+      type="button"
+      class="header__icon-button header__icon-button--badged"
+      matTooltip="Notifications"
+      [attr.aria-label]="'Notifications, ' + unread() + ' unread'"
+      [matMenuTriggerFor]="notificationMenu">
+      <span class="material-symbols-rounded" aria-hidden="true">notifications</span>
+      @if (unread() > 0) {
+        <span class="header__badge ll-pulse">{{ unread() > 99 ? '99+' : unread() }}</span>
+      }
+    </button>
+
+    <mat-menu #notificationMenu="matMenu" class="notification-menu">
+      <div class="notification-menu__head" (click)="$event.stopPropagation()">
+        <div>
+          <strong>Notifications</strong>
+          <span>{{ unread() }} unread</span>
+        </div>
+        <button mat-button type="button" (click)="markAllRead(); $event.stopPropagation()">
+          Mark all read
+        </button>
+      </div>
+      <mat-divider />
+
+      @for (item of recentNotifications(); track item.id) {
+        <button mat-menu-item type="button" class="notification-item" [routerLink]="item.actionUrl">
+          <span
+            class="notification-item__icon material-symbols-rounded"
+            [style.color]="'var(--ll-' + severityTone(item.severity) + ')'"
+            [style.background]="'var(--ll-' + severityTone(item.severity) + '-soft)'"
+            aria-hidden="true">
+            {{ item.icon }}
+          </span>
+          <span class="notification-item__body">
+            <span class="notification-item__title" [class.notification-item__title--unread]="!item.read">
+              {{ item.title }}
+            </span>
+            <span class="notification-item__text">{{ item.body }}</span>
+            <span class="notification-item__time">{{ item.createdAt | llRelative }}</span>
+          </span>
+        </button>
+      } @empty {
+        <div class="notification-menu__empty">You are all caught up.</div>
+      }
+
+      <mat-divider />
+      <button mat-menu-item type="button" routerLink="/notifications" class="notification-menu__all">
+        <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">inbox</span>
+        <span>View all notifications</span>
+      </button>
+    </mat-menu>
+
+    <span class="ll-divider--vertical ll-hide-handset" aria-hidden="true"></span>
+
+    <!-- Profile -->
+    <button type="button" class="header__profile" [matMenuTriggerFor]="profileMenu" aria-label="Account menu">
+      <ll-avatar [name]="user()?.fullName" [src]="user()?.avatarUrl" [size]="34" status="success" />
+      <span class="header__profile-text ll-hide-handset">
+        <strong>{{ user()?.fullName }}</strong>
+        <small>{{ roleLabel() }}</small>
+      </span>
+      <span class="material-symbols-rounded ll-hide-handset" aria-hidden="true">expand_more</span>
+    </button>
+
+    <mat-menu #profileMenu="matMenu" class="profile-menu">
+      <div class="profile-menu__head" (click)="$event.stopPropagation()">
+        <ll-avatar [name]="user()?.fullName" [src]="user()?.avatarUrl" [size]="44" />
+        <div>
+          <strong>{{ user()?.fullName }}</strong>
+          <span>{{ user()?.email }}</span>
+          <span class="ll-badge ll-badge--primary">{{ roleLabel() }}</span>
+        </div>
+      </div>
+      <mat-divider />
+
+      <button mat-menu-item type="button" routerLink="/profile">
+        <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">account_circle</span>
+        <span>My profile</span>
+      </button>
+      <button mat-menu-item type="button" routerLink="/profile/security">
+        <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">lock</span>
+        <span>Password &amp; security</span>
+      </button>
+      <button mat-menu-item type="button" routerLink="/settings/appearance">
+        <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">palette</span>
+        <span>Appearance</span>
+      </button>
+      <button mat-menu-item type="button" routerLink="/settings">
+        <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">settings</span>
+        <span>Settings</span>
+      </button>
+      <mat-divider />
+      <button mat-menu-item type="button" routerLink="/settings/about">
+        <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">help</span>
+        <span>Help &amp; documentation</span>
+      </button>
+      <button mat-menu-item type="button" (click)="openCommandPalette()">
+        <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">keyboard_command_key</span>
+        <span>Keyboard shortcuts</span>
+      </button>
+      <mat-divider />
+      <button mat-menu-item type="button" class="ll-menu-item--danger" (click)="signOut()">
+        <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">logout</span>
+        <span>Sign out</span>
+      </button>
+    </mat-menu>
+  </div>
+</header>

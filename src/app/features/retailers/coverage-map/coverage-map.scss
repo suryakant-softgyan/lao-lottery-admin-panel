@@ -1,0 +1,138 @@
+:host {
+  display: block;
+}
+
+.map {
+  &__legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+  }
+
+  &__legend-scale {
+    width: 110px;
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--ll-primary) 12%, transparent),
+      var(--ll-primary)
+    );
+  }
+
+  /* Density grid — swap this block for a tile map when boundaries exist. */
+  &__canvas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 10px;
+  }
+
+  &__tile {
+    display: grid;
+    gap: 3px;
+    padding: 13px 14px;
+    text-align: start;
+    border-radius: var(--ll-radius);
+    border: 1px solid color-mix(in srgb, var(--ll-primary) calc(var(--density) * 55%), var(--ll-border));
+    background: color-mix(in srgb, var(--ll-primary) calc(var(--density) * 26%), var(--ll-surface));
+    transition:
+      transform 150ms var(--ll-ease),
+      box-shadow 150ms var(--ll-ease);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--ll-shadow-md);
+    }
+  }
+
+  &__tile-name {
+    font-size: 0.78rem;
+    font-weight: 640;
+    color: var(--ll-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__tile-value {
+    font-size: 1.48rem;
+    font-weight: 760;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+    color: var(--ll-primary);
+  }
+
+  &__tile-meta {
+    font-size: 0.7rem;
+    color: var(--ll-text-muted);
+  }
+
+  &__tile-bar {
+    height: 4px;
+    margin-top: 5px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ll-text-muted) 22%, transparent);
+    overflow: hidden;
+  }
+
+  &__tile-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--ll-success);
+  }
+
+  &__note {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 14px 0 0;
+    font-size: 0.76rem;
+    color: var(--ll-text-muted);
+    line-height: 1.55;
+
+    .material-symbols-rounded {
+      font-size: 16px;
+      flex: 0 0 auto;
+    }
+  }
+}
+
+.coverage-table {
+  width: 100%;
+  font-size: 0.83rem;
+
+  th[scope='col'] {
+    padding: 10px 14px;
+    text-align: start;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+    background: var(--ll-table-header);
+    border-bottom: 1px solid var(--ll-border);
+    white-space: nowrap;
+  }
+
+  th[scope='row'] {
+    text-align: start;
+    font-weight: 620;
+  }
+
+  td,
+  th[scope='row'] {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--ll-border);
+    white-space: nowrap;
+  }
+
+  tbody tr:hover {
+    background: var(--ll-surface-hover);
+  }
+}

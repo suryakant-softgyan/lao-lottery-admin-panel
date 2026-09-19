@@ -1,0 +1,156 @@
+<div class="ll-page">
+  @if (loading()) {
+    <ll-skeleton variant="title" />
+    <ll-skeleton variant="card" [count]="2" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel
+      kind="error"
+      title="Outlet not found"
+      [message]="message"
+      actionLabel="Back to retailers"
+      actionIcon="arrow_back"
+      (action)="onHeaderAction('back')" />
+  } @else if (retailer(); as shop) {
+    <ll-page-header
+      [title]="shop.shopName"
+      eyebrow="Retail Network"
+      [subtitle]="humanise(shop.shopType) + ' · ' + shop.district + ', ' + shop.province"
+      icon="storefront"
+      [compact]="true"
+      [bannerUrl]="shop.photoUrl"
+      [stats]="[
+        { label: 'Sales today', value: (shop.salesToday | llCurrency: true), icon: 'payments' },
+        { label: 'Tickets today', value: shop.ticketsToday.toLocaleString(), icon: 'confirmation_number' },
+        { label: 'Terminals', value: shop.deviceCount.toString(), icon: 'point_of_sale' },
+        { label: 'Rating', value: shop.rating + ' ★', icon: 'star' },
+      ]"
+      [actions]="headerActions()"
+      (actionSelected)="onHeaderAction($event)" />
+
+    <div class="detail">
+      <aside class="detail__aside">
+        <div class="shop ll-card">
+          <img class="shop__photo" [src]="shop.photoUrl" [alt]="shop.shopName" loading="lazy" />
+          <div class="shop__body">
+            <div class="shop__owner">
+              <ll-avatar [name]="shop.ownerName" [size]="40" />
+              <div>
+                <strong>{{ shop.ownerName }}</strong>
+                <span>Outlet owner</span>
+              </div>
+            </div>
+            <div class="shop__badges">
+              <ll-status-badge [value]="shop.status" [map]="statusMap" />
+              <ll-status-badge [value]="shop.kycStatus" [map]="kycMap" />
+            </div>
+            <div class="shop__contact">
+              <a [href]="'tel:' + shop.contact.phone">
+                <span class="material-symbols-rounded" aria-hidden="true">phone</span>
+                {{ shop.contact.phone }}
+              </a>
+              <a [href]="'mailto:' + shop.contact.email">
+                <span class="material-symbols-rounded" aria-hidden="true">mail</span>
+                {{ shop.contact.email }}
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Location placeholder — swap for a real map component later. -->
+        <div class="ll-card">
+          <header class="ll-card__header">
+            <h3 class="ll-card__title">Location</h3>
+          </header>
+          <div class="location">
+            <div class="location__canvas" aria-hidden="true">
+              <span class="material-symbols-rounded location__pin">location_on</span>
+              <span class="location__ripple"></span>
+            </div>
+            <div class="location__meta">
+              <div>
+                <span>Latitude</span>
+                <strong class="ll-mono">{{ shop.latitude }}</strong>
+              </div>
+              <div>
+                <span>Longitude</span>
+                <strong class="ll-mono">{{ shop.longitude }}</strong>
+              </div>
+            </div>
+            <a
+              mat-stroked-button
+              class="location__action"
+              [href]="'https://www.openstreetmap.org/?mlat=' + shop.latitude + '&mlon=' + shop.longitude"
+              target="_blank"
+              rel="noopener noreferrer">
+              <span class="material-symbols-rounded" aria-hidden="true">open_in_new</span>
+              Open in maps
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <section class="detail__main ll-card">
+        <mat-tab-group animationDuration="200ms">
+          <mat-tab label="Profile">
+            <div class="detail__tab-body">
+              <h3 class="detail__section-title">Outlet profile</h3>
+              <ll-info-list [items]="profileItems()" [columns]="2" />
+
+              <h3 class="detail__section-title">Trading position</h3>
+              <ll-info-list [items]="tradingItems()" [columns]="2" />
+            </div>
+          </mat-tab>
+
+          <mat-tab [label]="'Terminals (' + devices().length + ')'">
+            <div class="detail__tab-body">
+              @if (devices().length) {
+                <div class="devices">
+                  @for (device of devices(); track device.id) {
+                    <article class="device">
+                      <span class="device__icon material-symbols-rounded" aria-hidden="true">
+                        point_of_sale
+                      </span>
+                      <div class="device__body">
+                        <strong class="ll-mono">{{ device.serialNumber }}</strong>
+                        <span>{{ humanise(device.model) }} · firmware {{ device.firmwareVersion }}</span>
+                        <span class="device__meta">
+                          Last seen {{ device.lastHeartbeatAt | llRelative }} ·
+                          {{ device.ticketsToday }} tickets today
+                        </span>
+                      </div>
+                      <div class="device__trail">
+                        <ll-status-badge [value]="device.status" [map]="deviceStatusMap" />
+                        <span class="device__battery ll-numeric">
+                          <span class="material-symbols-rounded" aria-hidden="true">battery_full</span>
+                          {{ device.batteryLevel }}%
+                        </span>
+                      </div>
+                    </article>
+                  }
+                </div>
+              } @else {
+                <ll-state-panel
+                  kind="empty"
+                  title="No terminals assigned"
+                  message="Assign a POS terminal so this outlet can start selling." />
+              }
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Notes">
+            <div class="detail__tab-body">
+              @if (shop.notes) {
+                <p class="notes">{{ shop.notes }}</p>
+              } @else {
+                <ll-state-panel kind="empty" [compact]="true" title="No notes recorded" />
+              }
+              <p class="detail__footnote">
+                Registered {{ shop.createdAt | llDate }} · last updated {{ shop.updatedAt | llRelative }}
+              </p>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </section>
+    </div>
+  }
+</div>

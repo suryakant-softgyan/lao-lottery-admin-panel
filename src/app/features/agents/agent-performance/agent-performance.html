@@ -1,0 +1,86 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Agent Performance"
+    eyebrow="Distribution Network"
+    subtitle="League table by sales volume, with commission earned and target achievement."
+    icon="trending_up"
+    [stats]="[{ label: 'Ranked agents', value: total().toLocaleString(), icon: 'leaderboard' }]"
+    [actions]="[{ id: 'back', label: 'All agents', icon: 'handshake', variant: 'secondary' }]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  <!-- Podium -->
+  @if (podium().length === 3) {
+    <section class="podium" aria-label="Top three agents">
+      @for (agent of podium(); track agent.id; let index = $index) {
+        <article
+          class="podium__place ll-card ll-card--interactive"
+          [class.podium__place--first]="index === 0"
+          [attr.data-place]="index + 1"
+          (click)="openDetail(agent)">
+          <span class="podium__medal" aria-hidden="true">
+            {{ index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉' }}
+          </span>
+          <ll-avatar [name]="agent.name" [src]="agent.avatarUrl" [size]="index === 0 ? 64 : 52" />
+          <h3 class="podium__name">{{ agent.name }}</h3>
+          <p class="podium__meta">{{ agent.code }} · {{ agent.province }}</p>
+          <p class="podium__sales ll-numeric">{{ agent.performance.salesAmount | llCurrency: true }}</p>
+          <div class="podium__stats">
+            <div>
+              <span>Commission</span>
+              <strong>{{ agent.performance.commissionEarned | llCurrency: true }}</strong>
+            </div>
+            <div>
+              <span>Target</span>
+              <strong>{{ agent.performance.achievementPercent | llPercent: 0 }}</strong>
+            </div>
+          </div>
+        </article>
+      }
+    </section>
+  }
+
+  <!-- Comparative chart -->
+  <section class="ll-card">
+    <header class="ll-card__header">
+      <div>
+        <h3 class="ll-card__title">Top ten by sales</h3>
+        <p class="ll-card__subtitle">Sales volume against commission earned</p>
+      </div>
+    </header>
+    <div class="ll-card__body">
+      <ll-chart
+        type="bar"
+        [labels]="chartLabels()"
+        [series]="chartSeries()"
+        [height]="300"
+        [valueFormatter]="currencyFormatter"
+        ariaLabel="Top ten agents by sales volume" />
+    </div>
+  </section>
+
+  <ll-list-toolbar
+    searchPlaceholder="Search agents…"
+    [quickFilters]="quickFilters"
+    [refreshing]="loading()"
+    (searchChange)="onSearch($event)"
+    (quickChange)="onQuickFilter($event)"
+    (refresh)="reload()"
+    (export)="onExport($event)"
+    (clear)="onClearFilters()" />
+
+  <ll-data-table
+    tableId="agent-performance"
+    [columns]="columns"
+    [page]="page()"
+    [loading]="loading()"
+    [error]="errorMessage()"
+    [sort]="query().sort ?? { active: '', direction: '' }"
+    [filtered]="isFiltered()"
+    [selectable]="false"
+    emptyTitle="No performance data"
+    emptyMessage="Performance is calculated once agents begin selling."
+    (sortChange)="onSort($event)"
+    (pageChange)="onPage($event)"
+    (rowClick)="openDetail($event)"
+    (retry)="reload()" />
+</div>

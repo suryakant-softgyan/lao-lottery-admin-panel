@@ -1,0 +1,201 @@
+<div class="ll-page">
+  @if (loading()) {
+    <ll-skeleton variant="title" />
+    <ll-skeleton variant="card" [count]="2" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel
+      kind="error"
+      title="Ticket not found"
+      [message]="message"
+      actionLabel="Back to tickets"
+      actionIcon="arrow_back"
+      (action)="onHeaderAction('back')" />
+  } @else if (ticket(); as ticket) {
+    <ll-page-header
+      [title]="ticket.ticketNumber"
+      eyebrow="Ticket Register"
+      [subtitle]="ticket.lotteryName + ' · ' + ticket.drawCode"
+      icon="confirmation_number"
+      [compact]="true"
+      [stats]="[
+        { label: 'Stake', value: (ticket.totalStake | llCurrency), icon: 'payments' },
+        { label: 'Gross payout', value: (ticket.totalPayout | llCurrency), icon: 'emoji_events' },
+        { label: 'Net payout', value: (ticket.netPayout | llCurrency), icon: 'paid' },
+        { label: 'Lines', value: ticket.lines.length.toString(), icon: 'format_list_numbered' },
+      ]"
+      [actions]="headerActions()"
+      (actionSelected)="onHeaderAction($event)" />
+
+    @if (ticket.cancellationReason) {
+      <div class="alert" role="status">
+        <span class="material-symbols-rounded" aria-hidden="true">cancel</span>
+        <div>
+          <strong>Ticket {{ humanise(ticket.status) }}</strong>
+          <span>
+            {{ ticket.cancellationReason }} — by {{ ticket.cancelledBy }} on
+            {{ ticket.cancelledAt | llDate: 'datetime' }}
+          </span>
+        </div>
+      </div>
+    }
+
+    <div class="ticket-layout">
+      <!-- Printable ticket stub -->
+      <aside class="stub ll-card">
+        <div class="stub__head">
+          <span class="stub__brand">LAO NATIONAL LOTTERY</span>
+          <span class="stub__type">{{ ticket.lotteryName }}</span>
+        </div>
+
+        <div class="stub__perforation" aria-hidden="true"></div>
+
+        <div class="stub__body">
+          <div class="stub__row">
+            <span>Ticket</span>
+            <strong class="ll-mono">{{ ticket.ticketNumber }}</strong>
+          </div>
+          <div class="stub__row">
+            <span>Draw</span>
+            <strong class="ll-mono">{{ ticket.drawCode }}</strong>
+          </div>
+          <div class="stub__row">
+            <span>Issued</span>
+            <strong>{{ ticket.purchasedAt | llDate: 'datetime' }}</strong>
+          </div>
+
+          <div class="stub__lines">
+            @for (line of ticket.lines; track line.id) {
+              <div class="stub__line" [class.stub__line--won]="line.won">
+                <div class="stub__numbers">
+                  @for (digit of line.numbers[0].split(''); track $index) {
+                    <span class="stub__digit">{{ digit }}</span>
+                  }
+                </div>
+                <div class="stub__line-meta">
+                  <span>{{ line.betType }}</span>
+                  <strong class="ll-numeric">{{ line.stake | llCurrency }}</strong>
+                </div>
+                @if (line.won) {
+                  <div class="stub__won">
+                    <span class="material-symbols-rounded" aria-hidden="true">emoji_events</span>
+                    {{ humanise(line.matchedTier ?? '') }} · {{ line.payout | llCurrency }}
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="stub__totals">
+            <div>
+              <span>Total stake</span>
+              <strong class="ll-numeric">{{ ticket.totalStake | llCurrency }}</strong>
+            </div>
+            @if (ticket.totalPayout > 0) {
+              <div>
+                <span>Tax withheld</span>
+                <strong class="ll-numeric">−{{ ticket.taxDeducted | llCurrency }}</strong>
+              </div>
+              <div class="stub__net">
+                <span>Net payout</span>
+                <strong class="ll-numeric">{{ ticket.netPayout | llCurrency }}</strong>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="stub__perforation" aria-hidden="true"></div>
+
+        <!-- Barcode placeholder: a real symbology renderer drops in here. -->
+        <div class="stub__code">
+          <div class="stub__barcode" aria-hidden="true">
+            @for (
+              bar of [
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+                27, 28,
+              ];
+              track bar
+            ) {
+              <span [style.width.px]="bar % 3 === 0 ? 3 : bar % 2 === 0 ? 2 : 1"></span>
+            }
+          </div>
+          <span class="stub__barcode-value ll-mono">{{ ticket.barcode }}</span>
+          <span class="stub__qr ll-mono">{{ ticket.qrPayload }}</span>
+        </div>
+
+        <div class="stub__footer">
+          <ll-status-badge [value]="ticket.status" [map]="statusMap" />
+          <ll-status-badge [value]="ticket.claimStatus" [map]="claimMap" />
+        </div>
+      </aside>
+
+      <!-- Record -->
+      <div class="ticket-layout__main">
+        <section class="ll-card">
+          <header class="ll-card__header">
+            <h3 class="ll-card__title">Purchase record</h3>
+          </header>
+          <div class="ll-card__body">
+            <ll-info-list [items]="purchaseItems()" [columns]="2" />
+          </div>
+        </section>
+
+        <section class="ll-card">
+          <header class="ll-card__header">
+            <h3 class="ll-card__title">Parties</h3>
+          </header>
+          <div class="ll-card__body">
+            <ll-info-list [items]="partyItems()" [columns]="2" />
+          </div>
+        </section>
+
+        <section class="ll-card">
+          <header class="ll-card__header">
+            <div>
+              <h3 class="ll-card__title">Bet lines</h3>
+              <p class="ll-card__subtitle">{{ ticket.lines.length }} line(s) on this ticket</p>
+            </div>
+          </header>
+          <div class="ll-scroll-x">
+            <table class="lines-table">
+              <thead>
+                <tr>
+                  <th scope="col">Numbers</th>
+                  <th scope="col">Bet type</th>
+                  <th scope="col">Stake</th>
+                  <th scope="col">Potential</th>
+                  <th scope="col">Result</th>
+                  <th scope="col">Payout</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of ticket.lines; track line.id) {
+                  <tr [class.lines-table__row--won]="line.won">
+                    <td class="ll-mono">{{ line.numbers.join(', ') }}</td>
+                    <td>{{ line.betType }}</td>
+                    <td class="ll-numeric">{{ line.stake | llCurrency }}</td>
+                    <td class="ll-numeric">{{ line.potentialPayout | llCurrency }}</td>
+                    <td>
+                      <span class="ll-badge" [class.ll-badge--success]="line.won">
+                        {{ line.won ? humanise(line.matchedTier ?? 'Won') : 'No win' }}
+                      </span>
+                    </td>
+                    <td class="ll-numeric">{{ line.payout | llCurrency }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="ll-card">
+          <header class="ll-card__header">
+            <h3 class="ll-card__title">Lifecycle</h3>
+          </header>
+          <div class="ll-card__body">
+            <ll-activity-timeline [events]="timeline()" />
+          </div>
+        </section>
+      </div>
+    </div>
+  }
+</div>

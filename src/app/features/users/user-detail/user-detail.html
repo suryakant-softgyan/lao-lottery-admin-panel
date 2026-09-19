@@ -1,0 +1,238 @@
+<div class="ll-page">
+  @if (loading()) {
+    <ll-skeleton variant="title" />
+    <ll-skeleton variant="card" [count]="2" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel
+      kind="error"
+      title="User not found"
+      [message]="message"
+      actionLabel="Back to users"
+      actionIcon="arrow_back"
+      (action)="onHeaderAction('back')" />
+  } @else if (user(); as person) {
+    <ll-page-header
+      [title]="person.fullName"
+      eyebrow="User Management"
+      [subtitle]="person.designation ? person.designation + ' · ' + (person.department ?? '') : person.email"
+      icon="account_circle"
+      [compact]="true"
+      [stats]="[
+        { label: 'Sign-ins', value: person.loginCount.toLocaleString(), icon: 'login' },
+        { label: 'Documents', value: person.documents.length.toString(), icon: 'folder' },
+        { label: 'Failed attempts', value: person.failedLoginAttempts.toString(), icon: 'gpp_maybe' },
+      ]"
+      [actions]="headerActions()"
+      (actionSelected)="onHeaderAction($event)" />
+
+    <div class="detail">
+      <!-- Left column: profile card -->
+      <aside class="detail__aside">
+        <div class="profile ll-card">
+          <div class="profile__head">
+            <ll-avatar [name]="person.fullName" [src]="person.avatarUrl" [size]="82" />
+            <h2 class="profile__name">{{ person.fullName }}</h2>
+            <p class="profile__username">{{ '@' + person.username }}</p>
+            <div class="profile__badges">
+              <ll-status-badge [value]="person.status" [map]="statusMap" />
+              <ll-status-badge [value]="person.primaryRole" [map]="roleMap" />
+            </div>
+          </div>
+
+          <div class="profile__verify">
+            <div class="profile__verify-row">
+              <span class="material-symbols-rounded" [class.on]="person.emailVerified" aria-hidden="true">
+                {{ person.emailVerified ? 'verified' : 'error' }}
+              </span>
+              Email {{ person.emailVerified ? 'verified' : 'not verified' }}
+            </div>
+            <div class="profile__verify-row">
+              <span class="material-symbols-rounded" [class.on]="person.phoneVerified" aria-hidden="true">
+                {{ person.phoneVerified ? 'verified' : 'error' }}
+              </span>
+              Phone {{ person.phoneVerified ? 'verified' : 'not verified' }}
+            </div>
+            <div class="profile__verify-row">
+              <span class="material-symbols-rounded" [class.on]="person.twoFactorEnabled" aria-hidden="true">
+                {{ person.twoFactorEnabled ? 'verified' : 'error' }}
+              </span>
+              Two-factor {{ person.twoFactorEnabled ? 'enabled' : 'disabled' }}
+            </div>
+          </div>
+
+          <div class="profile__meta">
+            <div>
+              <span>Last sign-in</span>
+              <strong>{{ person.lastLoginAt ? (person.lastLoginAt | llRelative) : 'Never' }}</strong>
+            </div>
+            <div>
+              <span>Member since</span>
+              <strong>{{ person.createdAt | llDate }}</strong>
+            </div>
+          </div>
+
+          <div class="profile__actions">
+            <button
+              mat-stroked-button
+              type="button"
+              class="profile__action"
+              (click)="resetPassword()"
+              [disabled]="!permissions.has(PERMISSIONS.users.resetPassword)">
+              <span class="material-symbols-rounded" aria-hidden="true">lock_reset</span>
+              Reset password
+            </button>
+            <a mat-stroked-button [routerLink]="['/audit']" [queryParams]="{ actor: person.id }">
+              <span class="material-symbols-rounded" aria-hidden="true">gavel</span>
+              Audit trail
+            </a>
+          </div>
+        </div>
+
+        @if (person.tags.length) {
+          <div class="ll-card">
+            <div class="ll-card__header">
+              <h3 class="ll-card__title">Tags</h3>
+            </div>
+            <div class="ll-card__body tags">
+              @for (tag of person.tags; track tag) {
+                <span class="ll-badge ll-badge--neutral">{{ tag }}</span>
+              }
+            </div>
+          </div>
+        }
+      </aside>
+
+      <!-- Right column: tabbed detail -->
+      <section class="detail__main ll-card">
+        <mat-tab-group animationDuration="200ms" class="detail__tabs">
+          <mat-tab label="Overview">
+            <div class="detail__tab-body">
+              <h3 class="detail__section-title">Identity</h3>
+              <ll-info-list [items]="identityItems()" [columns]="2" />
+
+              <h3 class="detail__section-title">Role & organisation</h3>
+              <ll-info-list [items]="organisationItems()" [columns]="2" />
+            </div>
+          </mat-tab>
+
+          <mat-tab [label]="'Documents (' + person.documents.length + ')'">
+            <div class="detail__tab-body">
+              @if (person.documents.length) {
+                <div class="documents">
+                  @for (document of person.documents; track document.id) {
+                    <article class="document">
+                      <span class="document__icon material-symbols-rounded" aria-hidden="true">
+                        description
+                      </span>
+                      <div class="document__body">
+                        <strong>{{ document.type }}</strong>
+                        <span class="ll-mono">{{ document.number }}</span>
+                        <span class="document__meta">
+                          Uploaded {{ document.uploadedAt | llRelative }}
+                          @if (document.expiresAt) {
+                            · expires {{ document.expiresAt | llDate }}
+                          }
+                        </span>
+                        @if (document.remarks) {
+                          <span class="document__remarks">{{ document.remarks }}</span>
+                        }
+                      </div>
+                      <ll-status-badge [value]="document.status" [map]="documentStatusMap" />
+                    </article>
+                  }
+                </div>
+              } @else {
+                <ll-state-panel
+                  kind="empty"
+                  title="No documents uploaded"
+                  message="Identity documents submitted by this user will appear here." />
+              }
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Login history">
+            <div class="detail__tab-body">
+              <div class="ll-scroll-x">
+                <table class="mini-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">When</th>
+                      <th scope="col">Result</th>
+                      <th scope="col">IP address</th>
+                      <th scope="col">Location</th>
+                      <th scope="col">Device</th>
+                      <th scope="col">Browser / OS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (entry of loginHistory(); track entry.id) {
+                      <tr>
+                        <td>{{ entry.timestamp | llDate: 'datetime' }}</td>
+                        <td>
+                          <span
+                            class="ll-badge"
+                            [class.ll-badge--success]="entry.success"
+                            [class.ll-badge--danger]="!entry.success">
+                            {{ entry.success ? 'Success' : entry.failureReason }}
+                          </span>
+                        </td>
+                        <td class="ll-mono">{{ entry.ipAddress }}</td>
+                        <td>{{ entry.location }}</td>
+                        <td>{{ entry.device }}</td>
+                        <td>{{ entry.browser }} · {{ entry.os }}</td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td colspan="6">
+                          <ll-state-panel kind="empty" [compact]="true" title="No sign-in history" />
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Devices">
+            <div class="detail__tab-body">
+              <div class="devices">
+                @for (device of deviceHistory(); track device.id) {
+                  <article class="device" [class.device--active]="device.active">
+                    <span class="device__icon material-symbols-rounded" aria-hidden="true">
+                      {{ device.deviceType === 'POS' ? 'point_of_sale' : 'devices' }}
+                    </span>
+                    <div class="device__body">
+                      <strong>{{ device.deviceName }}</strong>
+                      <span>{{ device.os }} · app {{ device.appVersion }}</span>
+                      <span class="device__meta">
+                        First seen {{ device.firstSeenAt | llDate }} · last
+                        {{ device.lastSeenAt | llRelative }}
+                      </span>
+                    </div>
+                    <div class="device__flags">
+                      @if (device.trusted) {
+                        <span class="ll-badge ll-badge--success">Trusted</span>
+                      }
+                      @if (device.active) {
+                        <span class="ll-badge ll-badge--primary">Active</span>
+                      }
+                    </div>
+                  </article>
+                } @empty {
+                  <ll-state-panel kind="empty" [compact]="true" title="No known devices" />
+                }
+              </div>
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Activity">
+            <div class="detail__tab-body">
+              <ll-activity-timeline [events]="timeline()" />
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </section>
+    </div>
+  }
+</div>

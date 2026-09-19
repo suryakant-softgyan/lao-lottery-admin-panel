@@ -1,0 +1,240 @@
+<div class="ll-page">
+  @if (loading()) {
+    <ll-skeleton variant="title" />
+    <ll-skeleton variant="card" [count]="2" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel
+      kind="error"
+      title="Agent not found"
+      [message]="message"
+      actionLabel="Back to agents"
+      actionIcon="arrow_back"
+      (action)="onHeaderAction('back')" />
+  } @else if (agent(); as agent) {
+    <ll-page-header
+      [title]="agent.name"
+      eyebrow="Agent Management"
+      [subtitle]="agent.businessName + ' · ' + agent.territory"
+      icon="handshake"
+      [compact]="true"
+      [stats]="[
+        { label: 'Sales', value: (agent.performance.salesAmount | llCurrency: true), icon: 'payments' },
+        {
+          label: 'Commission',
+          value: (agent.performance.commissionEarned | llCurrency: true),
+          icon: 'percent',
+        },
+        { label: 'Retailers', value: agent.retailerCount.toString(), icon: 'storefront' },
+        { label: 'Rank', value: '#' + agent.performance.rank, icon: 'leaderboard' },
+      ]"
+      [actions]="headerActions()"
+      (actionSelected)="onHeaderAction($event)" />
+
+    <!-- Status banners for suspension / blocking -->
+    @if (agent.suspendedReason) {
+      <div class="alert alert--warning" role="status">
+        <span class="material-symbols-rounded" aria-hidden="true">pause_circle</span>
+        <div>
+          <strong>Agent suspended</strong>
+          <span>{{ agent.suspendedReason }}</span>
+        </div>
+      </div>
+    }
+    @if (agent.blockedReason) {
+      <div class="alert alert--danger" role="alert">
+        <span class="material-symbols-rounded" aria-hidden="true">block</span>
+        <div>
+          <strong>Agent blocked</strong>
+          <span>{{ agent.blockedReason }}</span>
+        </div>
+      </div>
+    }
+
+    <div class="detail">
+      <aside class="detail__aside">
+        <div class="profile ll-card">
+          <div class="profile__head">
+            <ll-avatar [name]="agent.name" [src]="agent.avatarUrl" [size]="78" />
+            <h2 class="profile__name">{{ agent.name }}</h2>
+            <p class="profile__code ll-mono">{{ agent.code }}</p>
+            <div class="profile__badges">
+              <ll-status-badge [value]="agent.status" [map]="statusMap" />
+              <ll-status-badge [value]="agent.tier" [map]="tierMap" />
+            </div>
+          </div>
+
+          <div class="profile__metrics">
+            <div>
+              <span>Wallet</span>
+              <strong>{{ agent.walletBalance | llCurrency: true }}</strong>
+            </div>
+            <div>
+              <span>Outstanding</span>
+              <strong>{{ agent.outstandingBalance | llCurrency: true }}</strong>
+            </div>
+            <div>
+              <span>Achievement</span>
+              <strong>{{ agent.performance.achievementPercent | llPercent: 0 }}</strong>
+            </div>
+            <div>
+              <span>Devices</span>
+              <strong>{{ agent.deviceCount }}</strong>
+            </div>
+          </div>
+
+          <div class="profile__actions">
+            <a mat-stroked-button [routerLink]="['/wallet']" [queryParams]="{ owner: agent.id }">
+              <span class="material-symbols-rounded" aria-hidden="true">account_balance_wallet</span>
+              Wallet
+            </a>
+            <a mat-stroked-button [routerLink]="['/retailers']" [queryParams]="{ agentId: agent.id }">
+              <span class="material-symbols-rounded" aria-hidden="true">storefront</span>
+              Retailers
+            </a>
+          </div>
+        </div>
+
+        <div class="ll-card">
+          <header class="ll-card__header">
+            <h3 class="ll-card__title">Twelve-month trend</h3>
+          </header>
+          <div class="ll-card__body">
+            <ll-chart
+              type="area"
+              [labels]="trendLabels"
+              [series]="trendSeries()"
+              [height]="180"
+              [showLegend]="false"
+              ariaLabel="Monthly sales index for this agent" />
+          </div>
+        </div>
+      </aside>
+
+      <section class="detail__main ll-card">
+        <mat-tab-group animationDuration="200ms">
+          <mat-tab label="Profile">
+            <div class="detail__tab-body">
+              <h3 class="detail__section-title">Agent profile</h3>
+              <ll-info-list [items]="profileItems()" [columns]="2" />
+
+              <h3 class="detail__section-title">Financial position</h3>
+              <ll-info-list [items]="financialItems()" [columns]="2" />
+            </div>
+          </mat-tab>
+
+          <mat-tab [label]="'Commission (' + agent.commissionRules.length + ')'">
+            <div class="detail__tab-body">
+              <div class="ll-scroll-x">
+                <table class="mini-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Product</th>
+                      <th scope="col">Model</th>
+                      <th scope="col">Rate</th>
+                      <th scope="col">Flat</th>
+                      <th scope="col">Ceiling</th>
+                      <th scope="col">Effective from</th>
+                      <th scope="col">Active</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (rule of agent.commissionRules; track rule.id) {
+                      <tr>
+                        <td>{{ humanise(rule.lotteryType) }}</td>
+                        <td>{{ humanise(rule.model) }}</td>
+                        <td class="ll-numeric">{{ rule.rate }}%</td>
+                        <td class="ll-numeric">{{ rule.flatAmount | llCurrency }}</td>
+                        <td class="ll-numeric">{{ rule.maxSales | llCurrency: true }}</td>
+                        <td>{{ rule.effectiveFrom | llDate }}</td>
+                        <td>
+                          <span class="ll-badge" [class.ll-badge--success]="rule.active">
+                            {{ rule.active ? 'Active' : 'Inactive' }}
+                          </span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </mat-tab>
+
+          <mat-tab [label]="'Retailers (' + retailers().length + ')'">
+            <div class="detail__tab-body">
+              @if (retailers().length) {
+                <div class="ll-scroll-x">
+                  <table class="mini-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Shop</th>
+                        <th scope="col">Owner</th>
+                        <th scope="col">District</th>
+                        <th scope="col">Devices</th>
+                        <th scope="col">Sales today</th>
+                        <th scope="col">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (retailer of retailers(); track retailer.id) {
+                        <tr>
+                          <td>
+                            <a [routerLink]="['/retailers/details', retailer.id]">{{ retailer.shopName }}</a>
+                          </td>
+                          <td>{{ retailer.ownerName }}</td>
+                          <td>{{ retailer.district }}</td>
+                          <td class="ll-numeric">{{ retailer.deviceCount }}</td>
+                          <td class="ll-numeric">{{ retailer.salesToday | llCurrency: true }}</td>
+                          <td><ll-status-badge [value]="retailer.status" [map]="retailerStatusMap" /></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <ll-state-panel
+                  kind="empty"
+                  title="No retailers"
+                  message="This agent has no retail outlets assigned." />
+              }
+            </div>
+          </mat-tab>
+
+          <mat-tab [label]="'Sub-agents (' + children().length + ')'">
+            <div class="detail__tab-body">
+              @if (children().length) {
+                <div class="sub-agents">
+                  @for (child of children(); track child.id) {
+                    <a class="sub-agent" [routerLink]="['/agents/details', child.id]">
+                      <ll-avatar [name]="child.name" [src]="child.avatarUrl" [size]="38" />
+                      <div class="sub-agent__body">
+                        <strong>{{ child.name }}</strong>
+                        <span>{{ child.code }} · {{ child.province }}</span>
+                      </div>
+                      <div class="sub-agent__trail">
+                        <strong class="ll-numeric">
+                          {{ child.performance.salesAmount | llCurrency: true }}
+                        </strong>
+                        <ll-status-badge [value]="child.status" [map]="statusMap" [showIcon]="false" />
+                      </div>
+                    </a>
+                  }
+                </div>
+              } @else {
+                <ll-state-panel
+                  kind="empty"
+                  title="No sub-agents"
+                  message="This agent sits at the bottom of the hierarchy." />
+              }
+            </div>
+          </mat-tab>
+
+          <mat-tab label="History">
+            <div class="detail__tab-body">
+              <ll-activity-timeline [events]="timeline()" />
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </section>
+    </div>
+  }
+</div>

@@ -1,0 +1,245 @@
+:host {
+  display: block;
+}
+
+.hero {
+  position: relative;
+  border-radius: var(--ll-radius-lg);
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+  overflow: hidden;
+  box-shadow: var(--ll-shadow-md);
+  isolation: isolate;
+
+  /* Subtle texture so the gradient does not band on large displays. */
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 88% -10%, rgb(255 255 255 / 22%), transparent 46%),
+      radial-gradient(circle at 8% 120%, rgb(255 255 255 / 12%), transparent 42%);
+    pointer-events: none;
+  }
+
+  &__content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 22px 26px 24px;
+  }
+
+  &--compact &__content {
+    padding: 16px 20px 18px;
+    gap: 10px;
+  }
+
+  /* ------------------------------------------------------------ breadcrumb */
+
+  &__crumbs ol {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.76rem;
+  }
+
+  &__crumbs li {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: rgb(255 255 255 / 78%);
+  }
+
+  &__crumbs a {
+    color: rgb(255 255 255 / 82%);
+    text-decoration: none;
+    padding: 2px 5px;
+    border-radius: 6px;
+    transition: background-color 140ms var(--ll-ease);
+
+    &:hover {
+      background: rgb(255 255 255 / 16%);
+      color: #fff;
+      text-decoration: none;
+    }
+  }
+
+  &__crumbs [aria-current='page'] {
+    color: #fff;
+    font-weight: 600;
+    padding: 2px 5px;
+  }
+
+  &__crumb-sep {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+    opacity: 0.6;
+  }
+
+  &__crumbs .material-symbols-rounded {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  /* ----------------------------------------------------------------- title */
+
+  &__main {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  &__eyebrow {
+    margin: 0 0 3px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 74%);
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 730;
+    letter-spacing: -0.035em;
+    line-height: 1.18;
+
+    .material-symbols-rounded {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      opacity: 0.92;
+    }
+  }
+
+  &--compact &__title {
+    font-size: 1.28rem;
+  }
+
+  &__subtitle {
+    margin: 5px 0 0;
+    max-width: 720px;
+    font-size: 0.855rem;
+    line-height: 1.55;
+    color: rgb(255 255 255 / 84%);
+  }
+
+  /* --------------------------------------------------------------- actions */
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+  }
+
+  &__button {
+    --mdc-outlined-button-label-text-color: #fff;
+    --mdc-outlined-button-outline-color: rgb(255 255 255 / 46%);
+    --mdc-filled-button-container-color: #fff;
+    --mdc-filled-button-label-text-color: var(--ll-primary);
+
+    background: rgb(255 255 255 / 12%);
+    backdrop-filter: blur(6px);
+
+    .material-symbols-rounded {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-inline-end: 6px;
+    }
+
+    &:hover {
+      background: rgb(255 255 255 / 22%);
+    }
+
+    &--primary {
+      background: #fff;
+      color: var(--ll-primary);
+      font-weight: 700;
+
+      &:hover {
+        background: rgb(255 255 255 / 90%);
+      }
+    }
+  }
+
+  /* ----------------------------------------------------------------- stats */
+
+  &__stats {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  &__stat {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 14px;
+    border-radius: var(--ll-radius);
+    background: rgb(255 255 255 / 14%);
+    border: 1px solid rgb(255 255 255 / 18%);
+    backdrop-filter: blur(8px);
+    min-width: 130px;
+
+    .material-symbols-rounded {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      opacity: 0.88;
+    }
+
+    div {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+  }
+
+  &__stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  &__stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 74%);
+  }
+}
+
+@media (max-width: 720px) {
+  .hero__content {
+    padding: 18px 16px 20px;
+  }
+
+  .hero__title {
+    font-size: 1.3rem;
+  }
+
+  .hero__actions {
+    width: 100%;
+  }
+
+  .hero__stat {
+    flex: 1 1 44%;
+    min-width: 0;
+  }
+}

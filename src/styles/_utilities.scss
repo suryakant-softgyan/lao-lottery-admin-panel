@@ -1,0 +1,170 @@
+/* Layout utilities. Deliberately small — enough to compose page shells without
+   a utility framework, while component styles stay in their own files. */
+
+.ll-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ll-gap);
+  padding: var(--ll-gap);
+  width: 100%;
+  animation: ll-fade-up var(--ll-duration) var(--ll-ease) both;
+}
+
+:root[data-content-width='boxed'] .ll-page {
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+:root[data-content-width='fluid'] .ll-page {
+  max-width: var(--ll-content-max);
+  margin-inline: auto;
+}
+
+.ll-grid {
+  display: grid;
+  gap: var(--ll-gap);
+}
+
+@for $columns from 1 through 6 {
+  .ll-grid--#{$columns} {
+    grid-template-columns: repeat(#{$columns}, minmax(0, 1fr));
+  }
+}
+
+/* Auto-fitting card grid used by dashboards and summary rows. */
+.ll-grid--auto {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.ll-grid--auto-lg {
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+
+.ll-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ll-row--between {
+  justify-content: space-between;
+}
+
+.ll-row--end {
+  justify-content: flex-end;
+}
+
+.ll-row--wrap {
+  flex-wrap: wrap;
+}
+
+.ll-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ll-spacer {
+  flex: 1 1 auto;
+}
+
+.ll-span-2 {
+  grid-column: span 2;
+}
+
+.ll-span-3 {
+  grid-column: span 3;
+}
+
+.ll-span-full {
+  grid-column: 1 / -1;
+}
+
+/* Spacing helpers, expressed against the density-aware gap. */
+@each $name, $value in (0: 0, 1: 4px, 2: 8px, 3: 12px, 4: 16px, 5: 24px, 6: 32px) {
+  .ll-mt-#{$name} {
+    margin-top: #{$value};
+  }
+  .ll-mb-#{$name} {
+    margin-bottom: #{$value};
+  }
+  .ll-gap-#{$name} {
+    gap: #{$value};
+  }
+  .ll-p-#{$name} {
+    padding: #{$value};
+  }
+}
+
+.ll-divider {
+  height: 1px;
+  background: var(--ll-border);
+  border: 0;
+  margin: 0;
+}
+
+.ll-divider--vertical {
+  width: 1px;
+  height: 22px;
+  background: var(--ll-border);
+}
+
+.ll-surface {
+  background: var(--ll-surface-elevated);
+  border: 1px solid var(--ll-border);
+  border-radius: var(--ll-radius);
+}
+
+.ll-scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.ll-full-height {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.ll-clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.ll-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Responsive helpers used sparingly by the shell. */
+@media (max-width: 959px) {
+  .ll-hide-handset {
+    display: none !important;
+  }
+
+  .ll-grid--2,
+  .ll-grid--3,
+  .ll-grid--4,
+  .ll-grid--5,
+  .ll-grid--6 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ll-span-2,
+  .ll-span-3 {
+    grid-column: span 1;
+  }
+}
+
+@media (min-width: 960px) {
+  .ll-show-handset {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1279px) and (min-width: 960px) {
+  .ll-grid--4,
+  .ll-grid--5,
+  .ll-grid--6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

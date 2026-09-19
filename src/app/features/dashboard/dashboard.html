@@ -1,0 +1,471 @@
+<div class="ll-page dashboard">
+  <ll-page-header
+    [title]="greeting()"
+    eyebrow="Operations Dashboard"
+    subtitle="Live view of sales, draws, network health and financial position across the national lottery."
+    icon="space_dashboard"
+    [bannerUrl]="branding().dashboardBannerUrl"
+    [stats]="headerStats()"
+    [actions]="[
+      { id: 'refresh', label: 'Refresh', icon: 'refresh', variant: 'secondary' },
+      {
+        id: 'customise',
+        label: customising() ? 'Done' : 'Customise',
+        icon: 'dashboard_customize',
+        variant: 'secondary',
+      },
+      { id: 'reports', label: 'Open reports', icon: 'assessment', variant: 'primary' },
+    ]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  <!-- Scrolling announcements -->
+  @if (tickerItems().length) {
+    <div class="ticker ll-card" role="marquee" aria-label="Announcements">
+      <span class="ticker__label">
+        <span class="material-symbols-rounded" aria-hidden="true">campaign</span>
+        Notices
+      </span>
+      <div class="ticker__viewport">
+        <div class="ticker__track">
+          @for (item of tickerItems(); track item) {
+            <span class="ticker__item">{{ item }}</span>
+          }
+          <!-- Duplicated so the marquee loops seamlessly. -->
+          @for (item of tickerItems(); track item) {
+            <span class="ticker__item" aria-hidden="true">{{ item }}</span>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Announcement banners -->
+  @for (announcement of activeAnnouncements(); track announcement.id) {
+    <div
+      class="banner ll-card"
+      [style.--tone]="'var(--ll-' + severityTone(announcement.severity) + ')'"
+      role="status">
+      <span class="banner__icon material-symbols-rounded" aria-hidden="true">{{ announcement.icon }}</span>
+      <div class="banner__body">
+        <strong class="banner__title">{{ announcement.title }}</strong>
+        <span class="banner__message">{{ announcement.message }}</span>
+      </div>
+      @if (announcement.link) {
+        <a mat-stroked-button [routerLink]="announcement.link" class="banner__action">
+          {{ announcement.linkLabel }}
+        </a>
+      }
+      @if (announcement.dismissible) {
+        <button
+          type="button"
+          class="banner__close"
+          aria-label="Dismiss announcement"
+          (click)="dismissAnnouncement(announcement.id)">
+          <span class="material-symbols-rounded" aria-hidden="true">close</span>
+        </button>
+      }
+    </div>
+  }
+
+  @if (errorMessage(); as message) {
+    <ll-state-panel kind="error" [message]="message" [showRetry]="true" (retry)="load()" />
+  } @else {
+    <!-- KPI tiles -->
+    @if (loading()) {
+      <ll-skeleton variant="stat" [count]="8" class="dashboard__stat-skeleton" />
+    } @else {
+      <section class="dashboard__stats ll-stagger" aria-label="Key performance indicators">
+        @for (metric of metrics(); track metric.id) {
+          <ll-stat-card
+            [metric]="metric"
+            [currency]="currencyMetricIds.has(metric.id)"
+            (select)="onMetricSelect($event)" />
+        }
+      </section>
+    }
+
+    <!-- Upcoming draw + quick actions -->
+    <section class="dashboard__strip">
+      <div class="next-draw ll-card">
+        <div class="next-draw__head">
+          <span class="next-draw__label">
+            <span class="material-symbols-rounded" aria-hidden="true">schedule</span>
+            Next draw
+          </span>
+          @if (nextDraw(); as draw) {
+            <ll-status-badge [value]="draw.status" [map]="drawStatusMap" />
+          }
+        </div>
+
+        @if (nextDraw(); as draw) {
+          <h3 class="next-draw__title">{{ draw.lotteryName }}</h3>
+          <p class="next-draw__code">{{ draw.code }} · draw #{{ draw.drawNumber }}</p>
+          <ll-countdown [target]="draw.scheduledAt" expiredLabel="Draw in progress" />
+          <div class="next-draw__meta">
+            <div>
+              <span>Sales close</span>
+              <strong>{{ draw.salesCloseAt | llDate: 'datetime' }}</strong>
+            </div>
+            <div>
+              <span>Jackpot</span>
+              <strong>{{ draw.jackpotAmount | llCurrency: true }}</strong>
+            </div>
+          </div>
+          <a mat-flat-button [routerLink]="['/draws']" class="next-draw__action"> Open draw management </a>
+        } @else {
+          <ll-state-panel
+            kind="empty"
+            [compact]="true"
+            title="No scheduled draws"
+            message="Create a draw to see it here." />
+        }
+      </div>
+
+      <div class="quick-actions ll-card">
+        <div class="ll-card__header">
+          <div>
+            <h3 class="ll-card__title">Quick actions</h3>
+            <p class="ll-card__subtitle">Common tasks for your role</p>
+          </div>
+        </div>
+        <div class="quick-actions__grid">
+          <a routerLink="/draws/schedule" class="quick-action">
+            <span class="material-symbols-rounded" aria-hidden="true">event</span>
+            Schedule a draw
+          </a>
+          <a routerLink="/tickets/validate" class="quick-action">
+            <span class="material-symbols-rounded" aria-hidden="true">qr_code_scanner</span>
+            Validate ticket
+          </a>
+          <a routerLink="/agents/approvals" class="quick-action">
+            <span class="material-symbols-rounded" aria-hidden="true">assignment_turned_in</span>
+            Agent approvals
+          </a>
+          <a routerLink="/wallet/transfer" class="quick-action">
+            <span class="material-symbols-rounded" aria-hidden="true">sync_alt</span>
+            Wallet transfer
+          </a>
+          <a routerLink="/payment/reconciliation" class="quick-action">
+            <span class="material-symbols-rounded" aria-hidden="true">rule</span>
+            Reconciliation
+          </a>
+          <a routerLink="/reports/sales" class="quick-action">
+            <span class="material-symbols-rounded" aria-hidden="true">assessment</span>
+            Sales report
+          </a>
+          <a routerLink="/notifications/campaigns" class="quick-action">
+            <span class="material-symbols-rounded" aria-hidden="true">campaign</span>
+            New campaign
+          </a>
+          <a routerLink="/users" class="quick-action">
+            <span class="material-symbols-rounded" aria-hidden="true">person_add</span>
+            Manage users
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Customisation bar -->
+    @if (customising() && canCustomise) {
+      <div class="customise ll-card">
+        <div class="customise__intro">
+          <span class="material-symbols-rounded" aria-hidden="true">dashboard_customize</span>
+          <div>
+            <strong>Customising your dashboard</strong>
+            <span>Drag panels to reorder, use the panel menu to resize, pin or hide.</span>
+          </div>
+        </div>
+        <div class="customise__actions">
+          @for (widget of hiddenWidgets(); track widget.id) {
+            <button mat-stroked-button type="button" (click)="toggleWidget(widget.id)">
+              <span class="material-symbols-rounded" aria-hidden="true">add</span>
+              {{ widgetTitle(widget.id) }}
+            </button>
+          }
+          <button mat-button type="button" (click)="resetLayout()">Reset layout</button>
+        </div>
+      </div>
+    }
+
+    <!-- Widget grid -->
+    @if (loading()) {
+      <div class="ll-grid ll-grid--auto-lg">
+        <ll-skeleton variant="chart" [count]="7" />
+        <ll-skeleton variant="chart" [count]="7" />
+      </div>
+    } @else if (snapshot(); as data) {
+      <section
+        class="dashboard__grid"
+        cdkDropList
+        [cdkDropListDisabled]="!customising()"
+        (cdkDropListDropped)="onWidgetDrop($event)">
+        @for (widget of visibleWidgets(); track widget.id) {
+          <article
+            class="panel ll-card"
+            cdkDrag
+            [cdkDragDisabled]="!customising()"
+            [style.grid-column]="'span ' + widget.span">
+            <header class="ll-card__header">
+              <div>
+                <h3 class="ll-card__title">
+                  @if (widget.pinned) {
+                    <span class="material-symbols-rounded panel__pin" aria-hidden="true">push_pin</span>
+                  }
+                  {{ widgetTitle(widget.id) }}
+                </h3>
+              </div>
+
+              <div class="panel__tools">
+                @if (customising()) {
+                  <span class="panel__drag material-symbols-rounded" cdkDragHandle aria-hidden="true">
+                    drag_indicator
+                  </span>
+                }
+                <button
+                  mat-icon-button
+                  type="button"
+                  aria-label="Panel options"
+                  [matMenuTriggerFor]="panelMenu">
+                  <span class="material-symbols-rounded" aria-hidden="true">more_horiz</span>
+                </button>
+                <mat-menu #panelMenu="matMenu">
+                  <button mat-menu-item type="button" (click)="resizeWidget(widget.id)">
+                    <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true"
+                      >aspect_ratio</span
+                    >
+                    <span>Resize panel</span>
+                  </button>
+                  <button mat-menu-item type="button" (click)="togglePin(widget.id)">
+                    <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true">push_pin</span>
+                    <span>{{ isPinned(widget.id) ? 'Unpin' : 'Pin to top' }}</span>
+                  </button>
+                  <mat-divider />
+                  <button mat-menu-item type="button" (click)="toggleWidget(widget.id)">
+                    <span matMenuItemIcon class="material-symbols-rounded" aria-hidden="true"
+                      >visibility_off</span
+                    >
+                    <span>Hide panel</span>
+                  </button>
+                </mat-menu>
+              </div>
+            </header>
+
+            <div class="ll-card__body panel__body">
+              @switch (widget.id) {
+                @case ('sales-trend') {
+                  <ll-chart
+                    type="area"
+                    [labels]="data.salesTrend.labels"
+                    [series]="data.salesTrend.series"
+                    [height]="300"
+                    [valueFormatter]="currencyFormatter"
+                    ariaLabel="Sales and payouts over the last fourteen days" />
+                }
+                @case ('product-mix') {
+                  <ll-chart
+                    type="doughnut"
+                    [labels]="data.productMix.labels"
+                    [series]="data.productMix.series"
+                    [height]="300"
+                    [valueFormatter]="currencyFormatter"
+                    ariaLabel="Sales split by lottery product" />
+                }
+                @case ('revenue') {
+                  <ll-chart
+                    type="bar"
+                    [labels]="data.revenueVsPayout.labels"
+                    [series]="data.revenueVsPayout.series"
+                    [height]="300"
+                    [valueFormatter]="currencyFormatter"
+                    ariaLabel="Monthly sales, payouts and commission" />
+                }
+                @case ('channels') {
+                  <ll-chart
+                    type="pie"
+                    [labels]="data.channelSplit.labels"
+                    [series]="data.channelSplit.series"
+                    [height]="300"
+                    [valueFormatter]="countFormatter"
+                    ariaLabel="Tickets sold by channel" />
+                }
+                @case ('provinces') {
+                  <ll-chart
+                    type="horizontalBar"
+                    [labels]="data.provinceSales.labels"
+                    [series]="data.provinceSales.series"
+                    [height]="300"
+                    [showLegend]="false"
+                    [valueFormatter]="currencyFormatter"
+                    ariaLabel="Sales by province" />
+                }
+                @case ('winners') {
+                  <ul class="feed" role="list">
+                    @for (winner of data.recentWinners; track winner.id) {
+                      <li class="feed__item">
+                        <ll-avatar [name]="winner.customerName" [src]="winner.customerAvatar" [size]="36" />
+                        <div class="feed__body">
+                          <span class="feed__title">{{ winner.customerName }}</span>
+                          <span class="feed__sub">
+                            {{ winner.lotteryName }} · {{ winner.ticketNumber }}
+                          </span>
+                        </div>
+                        <div class="feed__trail">
+                          <strong class="feed__amount ll-numeric">
+                            {{ winner.prizeAmount | llCurrency: true }}
+                          </strong>
+                          <ll-status-badge
+                            [value]="winner.claimStatus"
+                            [map]="claimStatusMap"
+                            [showIcon]="false" />
+                        </div>
+                      </li>
+                    } @empty {
+                      <ll-state-panel kind="empty" [compact]="true" title="No winners yet" />
+                    }
+                  </ul>
+                  <a routerLink="/tickets/winning" class="panel__more">View all winners</a>
+                }
+                @case ('tickets') {
+                  <ul class="feed" role="list">
+                    @for (ticket of data.recentTickets; track ticket.id) {
+                      <li class="feed__item">
+                        <span class="feed__icon material-symbols-rounded" aria-hidden="true">
+                          confirmation_number
+                        </span>
+                        <div class="feed__body">
+                          <span class="feed__title">{{ ticket.ticketNumber }}</span>
+                          <span class="feed__sub">
+                            {{ ticket.lotteryName }} · {{ ticket.retailerName }}
+                          </span>
+                        </div>
+                        <div class="feed__trail">
+                          <strong class="feed__amount ll-numeric">{{
+                            ticket.totalStake | llCurrency
+                          }}</strong>
+                          <ll-status-badge
+                            [value]="ticket.status"
+                            [map]="ticketStatusMap"
+                            [showIcon]="false" />
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                  <a routerLink="/tickets" class="panel__more">View all tickets</a>
+                }
+                @case ('transactions') {
+                  <ul class="feed" role="list">
+                    @for (transaction of data.latestTransactions; track transaction.id) {
+                      <li class="feed__item">
+                        <span
+                          class="feed__icon material-symbols-rounded"
+                          [class.feed__icon--credit]="transaction.direction === 'CREDIT'"
+                          [class.feed__icon--debit]="transaction.direction === 'DEBIT'"
+                          aria-hidden="true">
+                          {{ transaction.direction === 'CREDIT' ? 'south_west' : 'north_east' }}
+                        </span>
+                        <div class="feed__body">
+                          <span class="feed__title">{{ transaction.ownerName }}</span>
+                          <span class="feed__sub">
+                            {{ transaction.reference }} · {{ transaction.createdAt | llRelative }}
+                          </span>
+                        </div>
+                        <div class="feed__trail">
+                          <strong class="feed__amount ll-numeric">{{
+                            transaction.amount | llCurrency
+                          }}</strong>
+                          <ll-status-badge
+                            [value]="transaction.status"
+                            [map]="transactionStatusMap"
+                            [showIcon]="false" />
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                  <a routerLink="/wallet/transactions" class="panel__more">View all transactions</a>
+                }
+                @case ('health') {
+                  <div class="health">
+                    <div class="health__summary">
+                      <div
+                        class="health__overall"
+                        [class.health__overall--healthy]="data.health.overall === HealthState.Healthy"
+                        [class.health__overall--degraded]="data.health.overall === HealthState.Degraded"
+                        [class.health__overall--down]="data.health.overall === HealthState.Down">
+                        <span class="material-symbols-rounded" aria-hidden="true">monitor_heart</span>
+                        <div>
+                          <strong>{{ healthStateMap[data.health.overall].label }}</strong>
+                          <span>Checked {{ data.health.checkedAt | llRelative }}</span>
+                        </div>
+                      </div>
+
+                      <div class="health__gauges">
+                        @for (
+                          gauge of [
+                            { label: 'CPU', value: data.health.cpuPercent },
+                            { label: 'Memory', value: data.health.memoryPercent },
+                            { label: 'Disk', value: data.health.diskPercent },
+                          ];
+                          track gauge.label
+                        ) {
+                          <div class="health__gauge">
+                            <div class="health__gauge-head">
+                              <span>{{ gauge.label }}</span>
+                              <strong class="ll-numeric">{{ gauge.value }}%</strong>
+                            </div>
+                            <div class="health__gauge-track">
+                              <span
+                                class="health__gauge-fill"
+                                [style.width.%]="gauge.value"
+                                [class.health__gauge-fill--warn]="gauge.value > 75"
+                                [class.health__gauge-fill--danger]="gauge.value > 90"></span>
+                            </div>
+                          </div>
+                        }
+                      </div>
+
+                      <div class="health__counters">
+                        <div>
+                          <span>Active sessions</span>
+                          <strong class="ll-numeric">{{ data.health.activeSessions }}</strong>
+                        </div>
+                        <div>
+                          <span>Requests / min</span>
+                          <strong class="ll-numeric">{{ data.health.requestsPerMinute }}</strong>
+                        </div>
+                        <div>
+                          <span>Error rate</span>
+                          <strong class="ll-numeric">{{ data.health.errorRatePercent }}%</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <ul class="health__components" role="list">
+                      @for (component of data.health.components; track component.id) {
+                        <li
+                          class="health__component"
+                          [class.health__component--degraded]="component.state === HealthState.Degraded"
+                          [class.health__component--down]="component.state === HealthState.Down">
+                          <span class="material-symbols-rounded" aria-hidden="true">{{
+                            component.icon
+                          }}</span>
+                          <div class="health__component-body">
+                            <strong>{{ component.name }}</strong>
+                            <span>{{ component.message }}</span>
+                          </div>
+                          <div class="health__component-metrics">
+                            <span class="ll-numeric">{{ component.latencyMs }} ms</span>
+                            <span class="ll-numeric">{{ component.uptimePercent }}%</span>
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
+              }
+            </div>
+          </article>
+        }
+      </section>
+    }
+  }
+</div>

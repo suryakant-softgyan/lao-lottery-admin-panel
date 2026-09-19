@@ -1,0 +1,255 @@
+:host {
+  display: block;
+}
+
+.detail {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: var(--ll-gap);
+  align-items: start;
+
+  &__aside {
+    display: grid;
+    gap: var(--ll-gap);
+  }
+
+  &__main {
+    overflow: hidden;
+  }
+
+  &__tabs {
+    --mat-tab-header-divider-color: var(--ll-border);
+  }
+
+  &__tab-body {
+    padding: 20px;
+  }
+
+  &__section-title {
+    margin: 0 0 6px;
+    font-size: 0.71rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+
+    &:not(:first-child) {
+      margin-top: 26px;
+    }
+  }
+}
+
+/* ----------------------------------------------------------------- profile */
+
+.profile {
+  &__head {
+    display: grid;
+    justify-items: center;
+    gap: 5px;
+    padding: 24px 18px 18px;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ll-primary) 10%, transparent) 0%,
+      transparent 100%
+    );
+    border-bottom: 1px solid var(--ll-border);
+  }
+
+  &__name {
+    margin: 8px 0 0;
+    font-size: 1.06rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  &__username {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--ll-text-muted);
+    font-family: ui-monospace, monospace;
+  }
+
+  &__badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  &__verify {
+    display: grid;
+    gap: 6px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--ll-border);
+
+    &-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.79rem;
+      color: var(--ll-text-secondary);
+
+      .material-symbols-rounded {
+        font-size: 17px;
+        color: var(--ll-text-muted);
+
+        &.on {
+          color: var(--ll-success);
+        }
+      }
+    }
+  }
+
+  &__meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--ll-border);
+    border-bottom: 1px solid var(--ll-border);
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 12px 14px;
+      background: var(--ll-surface-elevated);
+    }
+
+    span {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ll-text-muted);
+    }
+
+    strong {
+      font-size: 0.81rem;
+      font-weight: 620;
+    }
+  }
+
+  &__actions {
+    display: grid;
+    gap: 7px;
+    padding: 14px 16px 16px;
+
+    .material-symbols-rounded {
+      font-size: 18px;
+      margin-inline-end: 6px;
+    }
+  }
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* --------------------------------------------------------------- documents */
+
+.documents,
+.devices {
+  display: grid;
+  gap: 9px;
+}
+
+.document,
+.device {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 15px;
+  border: 1px solid var(--ll-border);
+  border-radius: var(--ll-radius);
+  background: var(--ll-surface);
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+    border-radius: 11px;
+    background: var(--ll-primary-soft);
+    color: var(--ll-primary);
+    font-size: 20px;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+
+    strong {
+      font-size: 0.85rem;
+      font-weight: 620;
+    }
+
+    > span {
+      font-size: 0.76rem;
+      color: var(--ll-text-secondary);
+    }
+  }
+
+  &__meta {
+    font-size: 0.72rem !important;
+    color: var(--ll-text-muted) !important;
+  }
+
+  &__remarks {
+    font-size: 0.74rem !important;
+    color: var(--ll-danger) !important;
+  }
+
+  &__flags {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+.device--active {
+  border-color: color-mix(in srgb, var(--ll-primary) 35%, var(--ll-border));
+}
+
+/* -------------------------------------------------------------- mini table */
+
+.mini-table {
+  width: 100%;
+  font-size: 0.81rem;
+
+  th {
+    padding: 9px 12px;
+    text-align: start;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+    border-bottom: 1px solid var(--ll-border);
+    background: var(--ll-table-header);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--ll-border);
+    white-space: nowrap;
+  }
+
+  tbody tr:hover {
+    background: var(--ll-surface-hover);
+  }
+}
+
+@media (max-width: 1100px) {
+  .detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

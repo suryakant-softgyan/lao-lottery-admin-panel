@@ -1,0 +1,179 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Prize Structure"
+    eyebrow="Operations"
+    subtitle="Prize tiers, multipliers, winner caps and tax for each lottery product."
+    icon="emoji_events"
+    [compact]="true"
+    [actions]="[
+      { id: 'back', label: 'Lottery types', icon: 'casino', variant: 'secondary' },
+      { id: 'configuration', label: 'Configuration', icon: 'tune', variant: 'secondary' },
+    ]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  @if (loading()) {
+    <ll-skeleton variant="card" [count]="2" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel kind="error" [message]="message" [showRetry]="true" (retry)="load()" />
+  } @else {
+    <!-- Product tabs -->
+    <nav class="products ll-card" aria-label="Lottery products">
+      @for (game of games(); track game.id) {
+        <button
+          type="button"
+          class="products__tab"
+          [class.products__tab--active]="selected().id === game.id"
+          [style.--game-colour]="game.colour"
+          (click)="select(game)">
+          <span class="products__dot" aria-hidden="true"></span>
+          {{ game.name }}
+        </button>
+      }
+    </nav>
+
+    @if (selected(); as game) {
+      <!-- Worked example bar -->
+      <div class="example ll-card">
+        <div class="example__field">
+          <label for="sample-stake">Worked example — stake</label>
+          <div class="example__input">
+            <span aria-hidden="true">₭</span>
+            <input
+              id="sample-stake"
+              type="number"
+              min="1000"
+              step="1000"
+              [ngModel]="sampleStake()"
+              (ngModelChange)="sampleStake.set($event || 1000)" />
+          </div>
+          <p class="example__hint">
+            Payout figures below are calculated against this stake, so the ladder can be read in real money.
+          </p>
+        </div>
+
+        <div class="example__liability">
+          <span>Maximum theoretical liability</span>
+          <strong class="ll-numeric">{{ maximumLiability() | llCurrency: true }}</strong>
+          <small>If every tier paid its full winner cap on this stake</small>
+        </div>
+
+        <div class="example__actions">
+          @if (dirty()) {
+            <span class="example__dirty">
+              <span class="material-symbols-rounded" aria-hidden="true">edit</span>
+              Unsaved changes
+            </span>
+            <button mat-button type="button" (click)="discard()">Discard</button>
+          }
+          <button mat-flat-button type="button" [disabled]="!dirty() || saving()" (click)="save()">
+            @if (saving()) {
+              <span class="material-symbols-rounded ll-spin" aria-hidden="true">progress_activity</span>
+              Saving…
+            } @else {
+              <span class="material-symbols-rounded" aria-hidden="true">save</span>
+              Update ladder
+            }
+          </button>
+        </div>
+      </div>
+
+      <div class="ll-grid ll-grid--2">
+        <!-- Tier editor -->
+        <section class="ll-card">
+          <header class="ll-card__header">
+            <div>
+              <h3 class="ll-card__title">{{ game.name }} prize tiers</h3>
+              <p class="ll-card__subtitle">
+                {{ draft().length }} tier(s) · {{ game.digitCount }}-digit product
+              </p>
+            </div>
+            <ll-status-badge [value]="game.type" [map]="typeMap" />
+          </header>
+
+          <div class="ll-scroll-x">
+            <table class="tiers">
+              <thead>
+                <tr>
+                  <th scope="col">Tier</th>
+                  <th scope="col">Multiplier</th>
+                  <th scope="col">Max winners</th>
+                  <th scope="col">Tax</th>
+                  <th scope="col">Gross payout</th>
+                  <th scope="col">Net to winner</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (tier of draft(); track tier.id; let index = $index) {
+                  <tr>
+                    <th scope="row">
+                      <span class="tiers__name">{{ humanise(tier.code) }}</span>
+                      <span class="tiers__criteria" [matTooltip]="tier.matchCriteria">
+                        {{ tier.matchCriteria }}
+                      </span>
+                    </th>
+                    <td>
+                      <input
+                        class="tiers__input"
+                        type="number"
+                        min="1"
+                        step="1"
+                        [attr.aria-label]="'Multiplier for ' + tier.name"
+                        [attr.title]="'Multiplier for ' + tier.name"
+                        [ngModel]="tier.multiplier"
+                        (ngModelChange)="updateTier(index, 'multiplier', $event)" />
+                    </td>
+                    <td>
+                      <input
+                        class="tiers__input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        [attr.aria-label]="'Maximum winners for ' + tier.name"
+                        [attr.title]="'Maximum winners for ' + tier.name"
+                        [ngModel]="tier.maxWinners"
+                        (ngModelChange)="updateTier(index, 'maxWinners', $event)" />
+                    </td>
+                    <td>
+                      <input
+                        class="tiers__input tiers__input--narrow"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        [attr.aria-label]="'Tax percentage for ' + tier.name"
+                        [attr.title]="'Tax percentage for ' + tier.name"
+                        [ngModel]="tier.taxPercent"
+                        (ngModelChange)="updateTier(index, 'taxPercent', $event)" />
+                    </td>
+                    <td class="ll-numeric tiers__payout">{{ payout(tier) | llCurrency }}</td>
+                    <td class="ll-numeric tiers__net">{{ netPayout(tier) | llCurrency }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Ladder chart -->
+        <section class="ll-card">
+          <header class="ll-card__header">
+            <div>
+              <h3 class="ll-card__title">Payout ladder</h3>
+              <p class="ll-card__subtitle">Gross payout per tier on the sample stake</p>
+            </div>
+          </header>
+          <div class="ll-card__body">
+            <ll-chart
+              type="horizontalBar"
+              [labels]="chartLabels()"
+              [series]="chartSeries()"
+              [height]="320"
+              [showLegend]="false"
+              [valueFormatter]="currencyFormatter"
+              ariaLabel="Payout by prize tier" />
+          </div>
+        </section>
+      </div>
+    }
+  }
+</div>

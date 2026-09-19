@@ -1,0 +1,58 @@
+<div class="ll-page">
+  <ll-page-header
+    title="User Management"
+    eyebrow="Administration"
+    subtitle="Staff accounts, customers, roles and verification across the lottery platform."
+    icon="group"
+    [stats]="[
+      { label: 'Total users', value: total().toLocaleString(), icon: 'group' },
+      { label: 'Selected', value: selected().length.toString(), icon: 'check_circle' },
+    ]"
+    [actions]="[
+      { id: 'verification', label: 'Verification queue', icon: 'verified_user', variant: 'secondary' },
+      { id: 'roles', label: 'Roles', icon: 'badge', variant: 'secondary' },
+      { id: 'create', label: 'New user', icon: 'person_add', variant: 'primary', disabled: !canCreate() },
+    ]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  <!-- Summary tiles -->
+  @if (summary().length) {
+    <section class="ll-grid ll-grid--auto ll-stagger" aria-label="User statistics">
+      @for (metric of summary(); track metric.id) {
+        <ll-stat-card [metric]="metric" [compact]="false" />
+      }
+    </section>
+  }
+
+  <ll-list-toolbar
+    searchPlaceholder="Search by name, username, email, phone or code…"
+    [quickFilters]="quickFilters"
+    [showDateRange]="true"
+    [refreshing]="loading()"
+    (searchChange)="onSearch($event)"
+    (quickChange)="onQuickFilter($event)"
+    (rangeChange)="onDateRange($event)"
+    (refresh)="reload()"
+    (export)="onExport($event)"
+    (clear)="onClearFilters()" />
+
+  <ll-data-table
+    tableId="users"
+    [columns]="columns"
+    [page]="page()"
+    [loading]="loading()"
+    [error]="errorMessage()"
+    [sort]="query().sort ?? { active: '', direction: '' }"
+    [filtered]="isFiltered()"
+    [rowActions]="rowActions"
+    [bulkActions]="bulkActions"
+    emptyTitle="No users yet"
+    emptyMessage="Create the first administrator or import an existing directory."
+    (sortChange)="onSort($event)"
+    (pageChange)="onPage($event)"
+    (rowAction)="onRowAction($event)"
+    (bulkAction)="onBulkAction($event)"
+    (rowClick)="onRowClick($event)"
+    (selectionChange)="onSelectionChange($event)"
+    (retry)="reload()" />
+</div>

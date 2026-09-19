@@ -1,0 +1,132 @@
+:host {
+  display: block;
+}
+
+.timeline {
+  position: relative;
+  margin: 0;
+  padding: 4px 0 0 0;
+  list-style: none;
+
+  /* Continuous rail behind the markers. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset-block: 12px 20px;
+    inset-inline-start: 15px;
+    width: 2px;
+    background: linear-gradient(
+      to bottom,
+      var(--ll-border),
+      color-mix(in srgb, var(--ll-border) 30%, transparent)
+    );
+  }
+
+  &__item {
+    position: relative;
+    display: flex;
+    gap: 13px;
+    padding-bottom: 20px;
+    animation: ll-fade-up var(--ll-duration) var(--ll-ease) both;
+
+    &:last-child {
+      padding-bottom: 4px;
+    }
+  }
+
+  &__marker {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--tone) 14%, var(--ll-surface-elevated));
+    color: var(--tone);
+    border: 2px solid var(--ll-surface-elevated);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--tone) 28%, transparent);
+
+    .material-symbols-rounded {
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
+    }
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    padding-top: 2px;
+  }
+
+  &__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__title {
+    font-size: 0.87rem;
+    font-weight: 620;
+    color: var(--ll-text);
+  }
+
+  &__time {
+    font-size: 0.73rem;
+    color: var(--ll-text-muted);
+    white-space: nowrap;
+  }
+
+  &__description {
+    margin: 3px 0 0;
+    font-size: 0.81rem;
+    line-height: 1.55;
+    color: var(--ll-text-secondary);
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin: 8px 0 0;
+    padding: 8px 11px;
+    border-radius: var(--ll-radius-sm);
+    background: var(--ll-surface);
+    border: 1px solid var(--ll-border);
+
+    div {
+      display: flex;
+      gap: 5px;
+      align-items: baseline;
+    }
+
+    dt {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ll-text-muted);
+      margin: 0;
+    }
+
+    dd {
+      margin: 0;
+      font-size: 0.76rem;
+      color: var(--ll-text);
+      font-weight: 500;
+    }
+  }
+
+  &__actor {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 7px;
+    font-size: 0.74rem;
+    color: var(--ll-text-muted);
+  }
+}

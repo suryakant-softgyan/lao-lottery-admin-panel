@@ -1,0 +1,99 @@
+<div class="ll-page">
+  <ll-page-header
+    title="Roles"
+    eyebrow="Access Control"
+    subtitle="Each role bundles a set of permissions. Assigning a role is the only way an operator gains access to a module."
+    icon="badge"
+    [stats]="[
+      { label: 'Roles', value: roles().length.toString(), icon: 'badge' },
+      { label: 'Permissions', value: totalPermissions().toString(), icon: 'lock_person' },
+    ]"
+    [actions]="[
+      { id: 'back', label: 'Back to users', icon: 'arrow_back', variant: 'secondary' },
+      { id: 'matrix', label: 'Permission matrix', icon: 'grid_on', variant: 'primary' },
+    ]"
+    (actionSelected)="onHeaderAction($event)" />
+
+  @if (loading()) {
+    <ll-skeleton variant="card" [count]="4" />
+  } @else if (errorMessage(); as message) {
+    <ll-state-panel kind="error" [message]="message" [showRetry]="true" (retry)="load()" />
+  } @else {
+    <section class="roles ll-stagger">
+      @for (role of roles(); track role.id) {
+        <article class="role ll-card ll-card--interactive">
+          <header class="role__head">
+            <div class="role__identity">
+              <span class="role__level" [attr.data-level]="role.level" aria-hidden="true">
+                L{{ role.level }}
+              </span>
+              <div>
+                <h3 class="role__name">{{ role.name }}</h3>
+                <p class="role__code ll-mono">{{ role.code }}</p>
+              </div>
+            </div>
+            <div class="role__flags">
+              @if (role.system) {
+                <span class="ll-badge ll-badge--info" matTooltip="System roles cannot be deleted">
+                  <span class="material-symbols-rounded" aria-hidden="true">shield</span>
+                  System
+                </span>
+              }
+              <ll-status-badge [value]="role.status" [map]="statusMap" [showIcon]="false" />
+            </div>
+          </header>
+
+          <p class="role__description">{{ role.description }}</p>
+
+          <div class="role__stats">
+            <div>
+              <span>Permissions</span>
+              <strong class="ll-numeric">{{ role.permissionCodes.length }}</strong>
+            </div>
+            <div>
+              <span>Users</span>
+              <strong class="ll-numeric">{{ role.userCount }}</strong>
+            </div>
+            <div>
+              <span>Updated</span>
+              <strong>{{ role.updatedAt | llDate }}</strong>
+            </div>
+          </div>
+
+          <!-- Module coverage: how much of each module this role can reach. -->
+          <div class="role__coverage">
+            <span class="role__coverage-label">Module coverage</span>
+            <div class="role__coverage-grid">
+              @for (module of modules; track module.key) {
+                <div
+                  class="role__module"
+                  [matTooltip]="
+                    module.label + ': ' + roleModuleCount(role, module.key) + ' of ' + moduleCount(module.key)
+                  ">
+                  <span class="material-symbols-rounded" aria-hidden="true">{{ module.icon }}</span>
+                  <span class="role__module-bar">
+                    <span class="role__module-fill" [style.width.%]="coverage(role, module.key)"></span>
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <footer class="role__footer">
+            <a
+              mat-stroked-button
+              [routerLink]="['/users/permissions']"
+              [queryParams]="{ role: role.id }"
+              [disabled]="!canEdit()">
+              <span class="material-symbols-rounded" aria-hidden="true">tune</span>
+              Edit permissions
+            </a>
+            <a mat-button [routerLink]="['/users']" [queryParams]="{ primaryRole: role.code }">
+              View {{ role.userCount }} user{{ role.userCount === 1 ? '' : 's' }}
+            </a>
+          </footer>
+        </article>
+      }
+    </section>
+  }
+</div>

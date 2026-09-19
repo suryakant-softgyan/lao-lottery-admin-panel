@@ -1,0 +1,212 @@
+:host {
+  display: block;
+}
+
+.login {
+  &__header {
+    margin-bottom: 22px;
+  }
+
+  &__title {
+    margin: 0 0 5px;
+    font-size: 1.5rem;
+    font-weight: 730;
+    letter-spacing: -0.035em;
+    color: var(--ll-text);
+  }
+
+  &__subtitle {
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.6;
+    color: var(--ll-text-muted);
+  }
+
+  &__notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 11px 13px;
+    margin-bottom: 16px;
+    border-radius: var(--ll-radius-sm);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    animation: ll-fade-up var(--ll-duration-fast, 140ms) var(--ll-ease) both;
+
+    .material-symbols-rounded {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      margin-top: 1px;
+    }
+
+    &--info {
+      background: var(--ll-info-soft);
+      border: 1px solid var(--ll-info-border);
+      color: var(--ll-info);
+    }
+
+    &--error {
+      background: var(--ll-danger-soft);
+      border: 1px solid var(--ll-danger-border);
+      color: var(--ll-danger);
+    }
+  }
+
+  &__affix {
+    font-size: 19px;
+    color: var(--ll-text-muted);
+    margin-inline-end: 9px;
+  }
+
+  &__reveal {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: var(--ll-text-muted);
+
+    &:hover {
+      background: var(--ll-surface-hover);
+      color: var(--ll-text);
+    }
+
+    .material-symbols-rounded {
+      font-size: 19px;
+    }
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    /* The password field above already contributes its own bottom margin. */
+    margin: 0 0 20px;
+    flex-wrap: wrap;
+  }
+
+  &__link {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ll-primary);
+  }
+
+  &__submit {
+    width: 100%;
+    height: 46px;
+    font-size: 0.92rem;
+    font-weight: 650;
+
+    .material-symbols-rounded {
+      font-size: 19px;
+      width: 19px;
+      height: 19px;
+      margin-inline-start: 6px;
+    }
+  }
+
+  /* ------------------------------------------------------------------ demo */
+
+  &__demo {
+    margin-top: 22px;
+    border-top: 1px solid var(--ll-border);
+    padding-top: 14px;
+  }
+
+  &__demo-toggle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    font-size: 0.79rem;
+    font-weight: 600;
+    color: var(--ll-text-secondary);
+
+    .material-symbols-rounded {
+      font-size: 17px;
+
+      &:last-child {
+        margin-inline-start: auto;
+      }
+    }
+
+    &:hover {
+      color: var(--ll-primary);
+    }
+  }
+
+  &__demo-body {
+    margin-top: 10px;
+    animation: ll-fade-up var(--ll-duration-fast, 140ms) var(--ll-ease) both;
+
+    ul {
+      display: grid;
+      gap: 5px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    li button {
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 1px 8px;
+      width: 100%;
+      padding: 8px 11px;
+      border-radius: var(--ll-radius-sm);
+      border: 1px solid var(--ll-border);
+      background: var(--ll-surface);
+      text-align: start;
+      transition:
+        border-color 140ms var(--ll-ease),
+        background-color 140ms var(--ll-ease);
+
+      &:hover {
+        border-color: var(--ll-primary);
+        background: var(--ll-primary-soft);
+      }
+    }
+  }
+
+  &__demo-hint {
+    margin: 0 0 9px;
+    font-size: 0.75rem;
+    line-height: 1.55;
+    color: var(--ll-text-muted);
+
+    code {
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--ll-surface-hover);
+      font-family: ui-monospace, monospace;
+      font-size: 0.72rem;
+      color: var(--ll-text);
+    }
+  }
+
+  &__demo-user {
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--ll-primary);
+  }
+
+  &__demo-role {
+    justify-self: end;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ll-text-muted);
+  }
+
+  &__demo-desc {
+    grid-column: 1 / -1;
+    font-size: 0.73rem;
+    color: var(--ll-text-muted);
+    line-height: 1.45;
+  }
+}
