@@ -20,6 +20,7 @@ import {
 } from '@core/enums';
 import { mockDataset } from '@core/mock/dataset';
 import type { Announcement, Draw, StatMetric, SystemHealth, WinnerSummary } from '@core/models';
+import { TranslationService } from '@core/services/translation.service';
 import type { Ticket, WalletTransaction } from '@core/models';
 import { MockBackendService } from '@core/services/mock-backend.service';
 import { mockRandom } from '@core/utilities/random.util';
@@ -60,6 +61,7 @@ const DAY_MS = 86_400_000;
 export class DashboardService {
   private readonly backend = inject(MockBackendService);
   private readonly http = inject(HttpClient);
+  private readonly translation = inject(TranslationService);
 
   load(): Observable<DashboardSnapshot> {
     if (!environment.useMockData) {
@@ -524,7 +526,8 @@ export class DashboardService {
         ),
       announcements: this.http
         .get<Row[]>(this.api('public/content'), {
-          params: { type: 'ANNOUNCEMENT', audience: 'ADMIN' },
+          // Returns announcements written for this language plus language-neutral ones.
+          params: { type: 'ANNOUNCEMENT', audience: 'ADMIN', language: this.translation.current() },
           headers: { 'X-Quiet': '1' },
         })
         .pipe(catchError(() => of([] as Row[]))),

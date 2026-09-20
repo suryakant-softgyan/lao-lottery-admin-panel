@@ -70,7 +70,7 @@
       @for (language of languages; track language.value) {
         <button mat-menu-item type="button" (click)="translation.use($any(language.value))">
           <span class="header__flag" aria-hidden="true">{{ language.icon }}</span>
-          <span>{{ language.label }}</span>
+          <span data-no-translate>{{ language.label }}</span>
           @if (translation.current() === language.value) {
             <span class="material-symbols-rounded menu-check" aria-hidden="true">check</span>
           }

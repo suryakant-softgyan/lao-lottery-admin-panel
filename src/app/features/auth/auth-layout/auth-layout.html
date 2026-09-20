@@ -21,7 +21,7 @@
       @for (language of languages; track language.value) {
         <button mat-menu-item type="button" (click)="translation.use($any(language.value))">
           <span aria-hidden="true">{{ language.icon }}</span>
-          <span>{{ language.label }}</span>
+          <span data-no-translate>{{ language.label }}</span>
         </button>
       }
     </mat-menu>

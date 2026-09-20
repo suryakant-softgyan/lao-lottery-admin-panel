@@ -274,6 +274,16 @@ export class AuthService {
   }
 
   /** Applies profile edits to the in-memory session user. */
+  /** Remembers the interface language on the profile so it follows the user to other devices. */
+  saveLanguage(language: string): void {
+    this.patchUser({ language });
+    if (!environment.useMockData) {
+      this.http.put(`${environment.apiBaseUrl}/me`, { language }).subscribe({
+        error: (error) => this.logger.warn('Language preference not saved', error),
+      });
+    }
+  }
+
   patchUser(changes: Partial<AuthenticatedUser>): void {
     this.currentUser.update((user) => (user ? { ...user, ...changes } : user));
     this.persistUser();

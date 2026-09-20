@@ -42,6 +42,9 @@
     color: #fff !important;
     background: rgb(255 255 255 / 14%) !important;
     backdrop-filter: blur(6px);
+    display: inline-grid !important;
+    place-items: center;
+    padding: 0 !important;
   }
 
   &[data-login-theme='minimal'] &__utility,
@@ -51,8 +54,17 @@
     border: 1px solid var(--ll-border);
   }
 
+  /*
+   * The flag is an emoji in a plain span, not a 24px icon glyph: without a box
+   * of its own it inherits the body line-height and sits below the centre.
+   */
   &__flag {
-    font-size: 1.05rem;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    font-size: 1.15rem;
+    line-height: 1;
   }
 
   /* ----------------------------------------------------------------- frame */

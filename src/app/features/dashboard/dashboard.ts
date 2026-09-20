@@ -1,5 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -21,6 +21,7 @@ import type { DashboardLayoutState, DashboardWidgetState, StatMetric } from '@co
 import { FeatureFlagService } from '@core/services/feature-flag.service';
 import { StorageService } from '@core/services/storage.service';
 import { ThemeService } from '@core/services/theme.service';
+import { TranslationService } from '@core/services/translation.service';
 import { ToastService } from '@core/services/toast.service';
 import { formatCompact, formatCurrency } from '@core/utilities/format.util';
 import { ChartComponent } from '@shared/components/chart/chart';
@@ -87,6 +88,7 @@ export class Dashboard {
   private readonly theme = inject(ThemeService);
   private readonly featureFlags = inject(FeatureFlagService);
   private readonly router = inject(Router);
+  private readonly translation = inject(TranslationService);
   protected readonly auth = inject(AuthService);
 
   protected readonly ticketStatusMap = TICKET_STATUS_MAP;
@@ -185,7 +187,11 @@ export class Dashboard {
     formatCompact(value, this.theme.regional().locale);
 
   constructor() {
-    this.load();
+    // Announcements are written per language, so a language switch reloads them.
+    effect(() => {
+      this.translation.current();
+      untracked(() => this.load());
+    });
   }
 
   protected load(): void {

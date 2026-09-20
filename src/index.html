@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Noto+Sans+Lao:wght@300;400;500;600;700&display=swap"
       rel="stylesheet" />
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Round"
@@ -28,12 +28,24 @@
       <div class="app-boot-splash">
         <div class="app-boot-splash__mark">LL</div>
         <div class="app-boot-splash__bar"><span></span></div>
-        <p class="app-boot-splash__text">Loading Lao Lottery Admin Portal…</p>
+        <p class="app-boot-splash__text" id="ll-boot-text">Loading Lao Lottery Admin Portal…</p>
       </div>
     </ll-root>
+    <!-- The splash shows before Angular (and its translations) load, so it reads the saved language itself. -->
+    <script>
+      try {
+        if (JSON.parse(localStorage.getItem('ll-admin:ui.language')) === 'lo') {
+          document.documentElement.lang = 'lo';
+          document.getElementById('ll-boot-text').textContent = 'ກຳລັງໂຫລດລະບົບຜູ້ບໍລິຫານຫວຍລາວ…';
+        }
+      } catch (error) {
+        /* storage unavailable: keep the English splash */
+      }
+    </script>
     <noscript>
       <p style="font-family: sans-serif; padding: 2rem">
-        This application requires JavaScript. Please enable it to continue.
+        This application requires JavaScript. Please enable it to continue.<br />
+        ແອັບພລິເຄຊັນນີ້ຕ້ອງໃຊ້ JavaScript. ກະລຸນາເປີດໃຊ້ງານເພື່ອດຳເນີນການຕໍ່.
       </p>
     </noscript>
   </body>

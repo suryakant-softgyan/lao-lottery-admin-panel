@@ -120,8 +120,8 @@ export class ProfileOverview {
   }
 
   protected setLanguage(language: string): void {
+    // The root component saves the choice to the profile.
     this.translation.use(language);
-    this.auth.patchUser({ language });
     this.toast.success('Language updated');
   }
 

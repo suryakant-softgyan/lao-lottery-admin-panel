@@ -5,6 +5,7 @@ import { ExportFormat } from '../enums';
 import type { TableColumn } from '../models/table.model';
 import { buildCsv, escapeHtml, timestampedFileName, triggerDownload } from '../utilities/file.util';
 import { getByPath } from '../utilities/object.util';
+import { DomTranslatorService } from './dom-translator.service';
 import { LoggerService } from './logger.service';
 import { ThemeService } from './theme.service';
 import { ToastService } from './toast.service';
@@ -38,6 +39,7 @@ export class ExportService {
   private readonly logger = inject(LoggerService);
   private readonly toast = inject(ToastService);
   private readonly theme = inject(ThemeService);
+  private readonly translator = inject(DomTranslatorService);
 
   export<T>(request: ExportRequest<T>): void {
     const columns = request.columns.filter((column) => column.exportable !== false && !column.hidden);
@@ -96,15 +98,18 @@ export class ExportService {
     columns: readonly TableColumn<T>[],
   ): { headers: string[]; body: string[][] } {
     return {
-      headers: columns.map((column) => column.label),
-      body: rows.map((row) => columns.map((column) => this.cellValue(row, column))),
+      // Files carry the interface language, like the table they were exported from.
+      headers: columns.map((column) => this.translator.text(column.label)),
+      body: rows.map((row) =>
+        columns.map((column) => this.translator.text(this.cellValue(row, column))),
+      ),
     };
   }
 
   private totalsRow<T>(rows: readonly T[], columns: readonly TableColumn<T>[]): string[] {
     return columns.map((column, index) => {
       if (index === 0) {
-        return 'Total';
+        return this.translator.text('Total');
       }
       if (column.type !== 'number' && column.type !== 'currency') {
         return '';
@@ -148,6 +153,8 @@ export class ExportService {
   private exportExcel<T>(request: ExportRequest<T>, columns: readonly TableColumn<T>[]): void {
     const { headers, body } = this.matrix(request.rows, columns);
     const rows = request.includeTotals ? [...body, this.totalsRow(request.rows, columns)] : body;
+    const title = this.translator.text(request.title);
+    const subtitle = request.subtitle ? this.translator.text(request.subtitle) : '';
     const html = `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8" />
 <style>
   table { border-collapse: collapse; font-family: Calibri, sans-serif; font-size: 11pt; }
@@ -157,7 +164,7 @@ export class ExportService {
   caption { font-size: 14pt; font-weight: 700; text-align: left; padding-bottom: 8px; }
 </style></head><body>
 <table>
-  <caption>${escapeHtml(request.title)}${request.subtitle ? ` — ${escapeHtml(request.subtitle)}` : ''}</caption>
+  <caption>${escapeHtml(title)}${subtitle ? ` — ${escapeHtml(subtitle)}` : ''}</caption>
   <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead>
   <tbody>${rows
     .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`)
@@ -182,16 +189,18 @@ export class ExportService {
   ): void {
     const { headers, body } = this.matrix(request.rows, columns);
     const rows = request.includeTotals ? [...body, this.totalsRow(request.rows, columns)] : body;
+    const title = this.translator.text(request.title);
+    const subtitle = request.subtitle ? this.translator.text(request.subtitle) : '';
     const branding = this.theme.branding();
     const palette = this.theme.palette();
     const generated = new Date().toLocaleString(this.theme.regional().locale);
 
     const html = `<!doctype html><html><head><meta charset="utf-8" />
-<title>${escapeHtml(request.title)}</title>
+<title>${escapeHtml(title)}</title>
 <style>
   @page { size: A4 landscape; margin: 14mm; }
   * { box-sizing: border-box; }
-  body { font-family: 'Inter', system-ui, sans-serif; color: #111827; margin: 0; }
+  body { font-family: 'Inter', 'Noto Sans Lao', system-ui, sans-serif; color: #111827; margin: 0; }
   header { display: flex; justify-content: space-between; align-items: flex-start;
            border-bottom: 3px solid ${palette.primary}; padding-bottom: 12px; margin-bottom: 18px; }
   h1 { font-size: 18pt; margin: 0 0 4px; color: ${palette.primary}; }
@@ -209,13 +218,13 @@ export class ExportService {
 </style></head><body>
 <header>
   <div>
-    <h1>${escapeHtml(request.title)}</h1>
-    ${request.subtitle ? `<div class="subtitle">${escapeHtml(request.subtitle)}</div>` : ''}
+    <h1>${escapeHtml(title)}</h1>
+    ${subtitle ? `<div class="subtitle">${escapeHtml(subtitle)}</div>` : ''}
   </div>
   <div class="meta">
     <strong>${escapeHtml(branding.applicationName)}</strong><br />
-    Generated ${escapeHtml(generated)}<br />
-    ${rows.length} row(s)
+    ${escapeHtml(this.translator.text('Generated'))} ${escapeHtml(generated)}<br />
+    ${escapeHtml(this.translator.text(`${rows.length} row(s)`))}
   </div>
 </header>
 <table>

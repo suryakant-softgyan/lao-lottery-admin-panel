@@ -148,14 +148,34 @@
     }
   }
 
-  &__date {
-    border: 0;
-    background: none;
-    outline: none;
+  &__range {
+    width: 196px;
     font-size: 0.79rem;
     color: var(--ll-text);
-    color-scheme: light dark;
-    max-width: 122px;
+
+    input {
+      cursor: pointer;
+      font: inherit;
+      color: inherit;
+    }
+  }
+
+  &__date-toggle {
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ll-text-muted);
+    cursor: pointer;
+
+    .material-symbols-rounded {
+      font-size: 18px;
+    }
+
+    &:hover {
+      color: var(--ll-primary);
+    }
   }
 
   &__date-sep {

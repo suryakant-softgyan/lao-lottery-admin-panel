@@ -1,0 +1,4 @@
+{
+  "/api": { "target": "https://lao-lottery-backend.onrender.com", "secure": true, "changeOrigin": true },
+  "/ws": { "target": "https://lao-lottery-backend.onrender.com", "secure": true, "ws": true, "changeOrigin": true }
+}

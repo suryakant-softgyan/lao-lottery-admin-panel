@@ -125,7 +125,8 @@ export class AuditLogPage extends ListPageBase<AuditLog> {
       type: 'number',
       sortable: true,
       minWidth: 120,
-      format: (value) => `${value} ms`,
+      // Only API calls are timed; business events carry no duration.
+      format: (value) => (value === null || value === undefined ? '—' : `${value} ms`),
     },
     { key: 'ipAddress', label: 'IP address', minWidth: 150, cellClass: () => 'll-mono' },
     { key: 'location', label: 'Location', minWidth: 200 },
@@ -165,7 +166,7 @@ export class AuditLogPage extends ListPageBase<AuditLog> {
       { label: 'Device', value: log.userAgent, icon: 'devices', wide: true },
       { label: 'Request id', value: log.requestId, icon: 'fingerprint', mono: true },
       { label: 'Status code', value: log.statusCode, icon: 'code' },
-      { label: 'Duration', value: `${log.durationMs} ms`, icon: 'timer' },
+      { label: 'Duration', value: log.durationMs === undefined ? '—' : `${log.durationMs} ms`, icon: 'timer' },
       { label: 'Description', value: log.description, icon: 'notes', wide: true },
     ];
   });

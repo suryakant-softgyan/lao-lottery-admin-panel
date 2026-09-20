@@ -96,6 +96,7 @@ API** — components and templates stay untouched, and `useMockData: true` still
 | 2026-09-18 | **Stage H done** — found and fixed during the walk-through: CORS rejected the dev origin (now any `localhost` port in dev); wallet ledger `direction` filter collided with the sort direction (API filter renamed to `flow`); drawn number now visible to verifiers before publication. All stages complete |
 | 2026-09-19 | Login showed raw HTML "Cannot POST /api/v1/auth/login": the `ng serve` on :4200 had been started before `proxy.conf.json` existed, so the dev server answered the POST itself. Restarted it (proxy now active, verified). The error interceptor now turns an HTML error body into a readable "API could not be reached" message |
 | 2026-09-19 | Lottery cards showed the product name in the top-left corner: it was the alt text of an `<img>` with an empty `src` (live products have no banner image yet). Cards now render the image only when a banner URL exists and loads; otherwise a **generated banner** (product colour, rings and one lottery ball per digit) is drawn. Verified in the browser |
+| 2026-09-19 | Backend deployed at `https://lao-lottery-backend.onrender.com`. Added `proxy.render.conf.json` + `npm run start:render` so the local panel can be tested against Render without touching the local setup (`npm start` still proxies to `localhost:8090`). Verified: API, login endpoint and WebSocket all reach Render through the proxy. For a deployed panel use `environment.prod.ts` + `CORS_ORIGINS` on Render |
 
 ## How to run the integrated stack
 
@@ -103,6 +104,7 @@ API** — components and templates stay untouched, and `useMockData: true` still
 cd backend && docker compose up -d      # PostgreSQL :5433, Redis :6379
 cd backend && mvn spring-boot:run       # API on http://localhost:8090  (Swagger: /swagger-ui.html)
 cd admin-panel && npm start             # http://localhost:4200 — /api and /ws are proxied to :8090
+cd admin-panel && npm run start:render   # same panel, proxied to the Render deployment instead
 ```
 
 Sign in with the **Demo accounts** panel on the login page (`admin`, `operator`, `finance`, `auditor` →

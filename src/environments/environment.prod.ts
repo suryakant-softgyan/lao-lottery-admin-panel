@@ -4,7 +4,7 @@ export const environment: AppEnvironment = {
   production: true,
   name: 'production',
   useMockData: false,
-  apiBaseUrl: '/api/v1',
+  apiBaseUrl: 'https://lao-lottery-backend.onrender.com/api/v1',
   wsBaseUrl: 'wss://api.laolottery.la/ws',
   appVersion: '1.0.0',
   buildNumber: 'release',

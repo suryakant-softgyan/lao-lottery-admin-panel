@@ -33,6 +33,7 @@ import {
   type ChartType,
 } from 'chart.js';
 
+import { DomTranslatorService } from '@core/services/dom-translator.service';
 import { ThemeService } from '@core/services/theme.service';
 import { withAlpha } from '@core/utilities/colour.util';
 
@@ -105,6 +106,7 @@ export interface ChartSeries {
 })
 export class ChartComponent {
   private readonly theme = inject(ThemeService);
+  private readonly translator = inject(DomTranslatorService);
   private readonly canvasRef = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
 
   readonly type = input<LlChartType>('bar');
@@ -177,7 +179,7 @@ export class ChartComponent {
 
       if (isCircular) {
         return {
-          label: entry.label,
+          label: this.translator.text(entry.label),
           data: entry.data,
           backgroundColor: entry.data.map((_, pointIndex) => palette[pointIndex % palette.length] ?? colour),
           borderColor: colours.surfaceElevated,
@@ -189,7 +191,7 @@ export class ChartComponent {
       const useLine = entry.type === 'line' || type === 'line' || isArea;
       return {
         type: entry.type ?? (isArea ? 'line' : undefined),
-        label: entry.label,
+        label: this.translator.text(entry.label),
         data: entry.data,
         backgroundColor: useLine
           ? isArea || entry.fill
@@ -285,7 +287,10 @@ export class ChartComponent {
 
     return {
       type: this.baseType(),
-      data: { labels: this.labels(), datasets } as ChartData,
+      data: {
+        labels: this.labels().map((label) => this.translator.text(label)),
+        datasets,
+      } as ChartData,
       options,
     };
   }

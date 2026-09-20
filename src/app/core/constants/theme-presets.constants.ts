@@ -527,12 +527,12 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
 };
 
 export const FONT_STACKS: Record<string, string> = {
-  inter: "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  roboto: "'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  poppins: "'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  'open-sans': "'Open Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  nunito: "'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  'ibm-plex-sans': "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  inter: "'Inter', 'Noto Sans Lao', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  roboto: "'Roboto', 'Noto Sans Lao', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  poppins: "'Poppins', 'Noto Sans Lao', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  'open-sans': "'Open Sans', 'Noto Sans Lao', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  nunito: "'Nunito', 'Noto Sans Lao', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  'ibm-plex-sans': "'IBM Plex Sans', 'Noto Sans Lao', system-ui, -apple-system, 'Segoe UI', sans-serif",
 };
 
 export const DEFAULT_BRANDING: BrandingSettings = {

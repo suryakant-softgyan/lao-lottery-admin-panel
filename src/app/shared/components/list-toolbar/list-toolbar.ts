@@ -1,6 +1,17 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { DateAdapter, provideNativeDateAdapter } from '@angular/material/core';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -9,6 +20,8 @@ import { DEBOUNCE_MS } from '@core/constants/app.constants';
 import { ExportFormat } from '@core/enums';
 import type { DateRange, SelectOption } from '@core/models/common.model';
 import { LayoutService } from '@core/services/layout.service';
+import { AppDateAdapter } from '@core/utilities/app-date-adapter';
+import { TranslationService } from '@core/services/translation.service';
 
 export interface QuickFilter {
   /** Field the value is applied to in the page query's `quick` bag. */
@@ -30,7 +43,15 @@ export interface QuickFilter {
 @Component({
   selector: 'll-list-toolbar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatButtonModule, MatDividerModule, MatMenuModule, MatTooltipModule],
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatDatepickerModule,
+    MatDividerModule,
+    MatMenuModule,
+    MatTooltipModule,
+  ],
+  providers: [provideNativeDateAdapter(), { provide: DateAdapter, useClass: AppDateAdapter }],
   template: `
     <div class="toolbar ll-card">
       <div class="toolbar__main">
@@ -95,21 +116,45 @@ export interface QuickFilter {
         <!-- Date range -->
         @if (showDateRange()) {
           <div class="toolbar__dates">
-            <label class="ll-visually-hidden" for="range-from">From date</label>
-            <input
-              id="range-from"
-              type="date"
-              class="toolbar__date"
-              [ngModel]="range().from"
-              (ngModelChange)="onRangeChange('from', $event)" />
-            <span class="toolbar__date-sep" aria-hidden="true">→</span>
-            <label class="ll-visually-hidden" for="range-to">To date</label>
-            <input
-              id="range-to"
-              type="date"
-              class="toolbar__date"
-              [ngModel]="range().to"
-              (ngModelChange)="onRangeChange('to', $event)" />
+            <!--
+              A Material range picker rather than native date inputs: those follow the
+              browser's language, this one follows the portal's.
+            -->
+            <button
+              type="button"
+              class="toolbar__date-toggle"
+              aria-label="Open calendar"
+              (click)="rangePicker.open()">
+              <span class="material-symbols-rounded" aria-hidden="true">date_range</span>
+            </button>
+            <mat-date-range-input class="toolbar__range" [rangePicker]="rangePicker">
+              <input
+                matStartDate
+                readonly
+                placeholder="From date"
+                aria-label="From date"
+                [value]="fromDate()"
+                (click)="rangePicker.open()"
+                (dateChange)="onRangeChange('from', $event.value)" />
+              <input
+                matEndDate
+                readonly
+                placeholder="To date"
+                aria-label="To date"
+                [value]="toDate()"
+                (click)="rangePicker.open()"
+                (dateChange)="onRangeChange('to', $event.value)" />
+            </mat-date-range-input>
+            @if (hasDateRange()) {
+              <button
+                type="button"
+                class="toolbar__date-toggle"
+                aria-label="Clear dates"
+                (click)="clearRange()">
+                <span class="material-symbols-rounded" aria-hidden="true">close</span>
+              </button>
+            }
+            <mat-date-range-picker #rangePicker />
           </div>
         }
 
@@ -240,10 +285,18 @@ export class ListToolbar {
   protected readonly activeQuick = signal<Record<string, string>>({});
   protected readonly range = signal<DateRange>({ from: null, to: null });
   protected readonly advancedOpen = signal(false);
+  protected readonly fromDate = computed(() => toDate(this.range().from));
+  protected readonly toDate = computed(() => toDate(this.range().to));
+
+  private readonly dateAdapter = inject<DateAdapter<Date>>(DateAdapter);
+  private readonly translation = inject(TranslationService);
 
   private debounce: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    // Calendar month and weekday names follow the interface language.
+    effect(() => this.dateAdapter.setLocale(this.translation.dateLocale()));
+
     // Seed the chip state from the declared filters' initial values.
     effect(() => {
       const seeded: Record<string, string> = {};
@@ -293,8 +346,17 @@ export class ListToolbar {
     this.quickChange.emit(this.activeQuick());
   }
 
-  protected onRangeChange(field: 'from' | 'to', value: string): void {
-    this.range.update((current) => ({ ...current, [field]: value || null }));
+  protected onRangeChange(field: 'from' | 'to', value: Date | null): void {
+    this.range.update((current) => ({ ...current, [field]: toIsoDate(value) }));
+    // Picking the start clears the end first; wait for a complete (or empty) range.
+    const { from, to } = this.range();
+    if ((from && to) || (!from && !to)) {
+      this.rangeChange.emit(this.range());
+    }
+  }
+
+  protected clearRange(): void {
+    this.range.set({ from: null, to: null });
     this.rangeChange.emit(this.range());
   }
 
@@ -308,4 +370,21 @@ export class ListToolbar {
     this.range.set({ from: null, to: null });
     this.clear.emit();
   }
+}
+
+/** `yyyy-MM-dd` in local time — the shape list queries send to the API. */
+function toIsoDate(value: Date | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const pad = (part: number): string => String(part).padStart(2, '0');
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+}
+
+function toDate(value: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1);
 }

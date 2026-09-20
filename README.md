@@ -128,6 +128,44 @@ contacts and regional formats (locale, currency, date and time format, first day
 
 ---
 
+## Languages
+
+Screens are authored in English. `DomTranslatorService` translates what reaches the DOM — text
+nodes, `placeholder` / `title` / `aria-label` attributes, the tab title and chart labels — by
+looking each string up in `src/assets/i18n/phrases/<lang>.json`, and restores the English
+source when the user switches back. Text that is not in the bundle (names, codes, API data)
+stays as it is.
+
+The bundle has exact `phrases`, `templates` for text with embedded values
+(`"{1} agent(s) approved"`) and hand-written regex `rawPatterns` / `lastPatterns`; `patterns`
+is generated. To pick up new copy:
+
+```bash
+node tools/extract-phrases.mjs --missing lo > missing.json   # untranslated copy in the source
+# translate it into a { "English": "ລາວ" } map, then:
+node tools/merge-phrases.mjs lo translated.json
+```
+
+The bundle also carries the backend's status codes (`KYC_PENDING`) and server messages, month
+and weekday names (dates are matched by pattern, so number formats stay regional), and is used
+by `ExportService` so CSV, Excel, PDF and print output follow the interface language. The
+Material date picker takes its locale from `TranslationService.dateLocale`.
+
+Chromium ships no Lao `Intl` data (`lo-LA` silently formats as English), which is why dates
+are translated by pattern and why calendars use `AppDateAdapter` (built-in Lao month and weekday
+names) instead of the native adapter. Announcements are stored per language on the backend; the
+dashboard asks for the current one and reloads when the language changes.
+
+Signing in adopts the language saved on the user's profile unless one was picked on the login
+screen in that session; changing language while signed in saves it back (`PUT /me`). The root
+component links the two, because `AuthService` and `TranslationService` cannot inject each other.
+
+While Lao is active, `__llMissingPhrases()` in the browser console lists every string on the
+visited screens that the bundle lacks. Mark an element `data-no-translate` to opt it out.
+Adding a language means adding it to `supportedLanguages`, `LANGUAGES` and a new bundle file.
+
+---
+
 ## Security model
 
 - **RBAC** — `PermissionService` is the single authority. Route guards, the `*llHasPermission`

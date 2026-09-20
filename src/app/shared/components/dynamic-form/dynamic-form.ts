@@ -19,7 +19,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+import { DateAdapter, MatNativeDateModule } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -31,6 +31,8 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { VALIDATION_LIMITS } from '@core/constants/app.constants';
+import { TranslationService } from '@core/services/translation.service';
+import { AppDateAdapter } from '@core/utilities/app-date-adapter';
 import { AppValidators, firstErrorMessage } from '../../validators/app.validators';
 import type { FormField, FormSchema } from './dynamic-form.model';
 
@@ -48,6 +50,7 @@ import type { FormField, FormSchema } from './dynamic-form.model';
 @Component({
   selector: 'll-dynamic-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [{ provide: DateAdapter, useClass: AppDateAdapter }],
   imports: [
     NgTemplateOutlet,
     ReactiveFormsModule,
@@ -70,6 +73,8 @@ import type { FormField, FormSchema } from './dynamic-form.model';
 })
 export class DynamicForm {
   private readonly fb = inject(FormBuilder);
+  private readonly dateAdapter = inject<DateAdapter<Date>>(DateAdapter);
+  private readonly translation = inject(TranslationService);
 
   readonly schema = input.required<FormSchema>();
   readonly value = input<Record<string, unknown> | null>(null);
@@ -88,6 +93,9 @@ export class DynamicForm {
   readonly form = signal<FormGroup>(this.fb.group({}));
 
   constructor() {
+    // The calendar's month and weekday names follow the interface language.
+    effect(() => this.dateAdapter.setLocale(this.translation.dateLocale()));
+
     // Rebuild whenever the schema or the seeded value changes.
     effect(() => {
       const schema = this.schema();

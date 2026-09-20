@@ -4,8 +4,12 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { environment } from '@env/environment';
 import { STORAGE_KEYS } from '../constants/app.constants';
+import { DomTranslatorService } from './dom-translator.service';
 import { StorageService } from './storage.service';
 import { ThemeService } from './theme.service';
+
+/** Calendar locale per interface language. */
+const DATE_LOCALES: Record<string, string> = { lo: 'lo-LA' };
 
 /** Languages that render right-to-left; drives the automatic RTL switch. */
 const RTL_LANGUAGES = new Set(['ar', 'he', 'fa', 'ur']);
@@ -22,6 +26,7 @@ export class TranslationService {
   private readonly translate = inject(TranslateService);
   private readonly storage = inject(StorageService);
   private readonly theme = inject(ThemeService);
+  private readonly domTranslator = inject(DomTranslatorService);
   private readonly document = inject(DOCUMENT);
 
   private readonly language = signal<string>(
@@ -29,22 +34,47 @@ export class TranslationService {
   );
 
   readonly current = this.language.asReadonly();
+  /** True once someone picks a language by hand in this page session. */
+  private chosenByHand = false;
   readonly supported = environment.supportedLanguages;
   readonly isRtl = computed(() => RTL_LANGUAGES.has(this.language()));
+  /** BCP 47 tag for calendar widgets: the language wins over the regional default. */
+  readonly dateLocale = computed(() =>
+    this.language() === environment.defaultLanguage
+      ? this.theme.regional().locale
+      : (DATE_LOCALES[this.language()] ?? this.language()),
+  );
 
   /** Called once during application initialisation. */
   initialise(): void {
     this.translate.addLangs([...environment.supportedLanguages]);
     this.translate.setFallbackLang(environment.defaultLanguage);
-    this.use(this.language());
+    this.apply(this.language());
   }
 
   use(language: string): void {
     if (!environment.supportedLanguages.includes(language)) {
       return;
     }
+    this.chosenByHand = true;
+    this.apply(language);
+  }
+
+  /**
+   * Applies the language saved on a profile at sign-in. A language picked on
+   * the login screen moments earlier is the fresher intent, so it is kept.
+   */
+  adoptProfileLanguage(language: string | null | undefined): void {
+    if (language && !this.chosenByHand && environment.supportedLanguages.includes(language)) {
+      this.apply(language);
+    }
+  }
+
+  private apply(language: string): void {
     this.language.set(language);
     this.translate.use(language);
+    // Screen copy is authored in English; the phrase bundle covers the rest.
+    this.domTranslator.use(language);
     this.storage.set(STORAGE_KEYS.language, language);
 
     this.document.documentElement.lang = language;
