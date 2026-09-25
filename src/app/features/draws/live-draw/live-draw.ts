@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { DRAW_MODE_MAP, DRAW_STATUS_MAP } from '@core/constants/status-maps.constants';
-import { DrawMode, DrawStatus } from '@core/enums';
+import { DrawMode, DrawStatus, LotteryType } from '@core/enums';
 import type { Draw, DrawWinningNumber } from '@core/models';
 import { ConfirmService } from '@core/services/confirm.service';
 import { ToastService } from '@core/services/toast.service';
@@ -67,6 +67,43 @@ export class LiveDraw {
 
   /** Per-tier number entry, keyed by tier code. */
   protected readonly entries = signal<Record<string, string>>({});
+
+  // ---- Powerball (two-pool) result entry ----
+  /** Comma-separated main numbers, e.g. "3,11,19,27,35". */
+  protected readonly pbMain = signal<string>('');
+  /** The bonus (powerball) number. */
+  protected readonly pbBonus = signal<string>('');
+  // Pool sizes for this Powerball game (matches the seeded 5-of-35 + 1-of-10).
+  private readonly pbMainPool = 35;
+  private readonly pbBonusPool = 10;
+  private readonly pbMainPick = 5;
+
+  protected readonly isPowerball = computed(
+    () => this.selected()?.lotteryType === LotteryType.Powerball,
+  );
+
+  /** Distinct, in-range main numbers currently entered. */
+  private pbMains(): number[] {
+    const seen = new Set<number>();
+    for (const part of this.pbMain().split(/[,\s]+/)) {
+      const n = Number(part.trim());
+      if (Number.isInteger(n) && n >= 1 && n <= this.pbMainPool) {
+        seen.add(n);
+      }
+    }
+    return [...seen];
+  }
+
+  protected readonly canSubmitPowerball = computed(() => {
+    this.pbMain(); // track
+    const bonus = Number(this.pbBonus());
+    return (
+      this.pbMains().length === this.pbMainPick &&
+      Number.isInteger(bonus) &&
+      bonus >= 1 &&
+      bonus <= this.pbBonusPool
+    );
+  });
 
   /** Set while the RNG animation runs. */
   protected readonly spinning = signal(false);
@@ -212,6 +249,19 @@ export class LiveDraw {
       return;
     }
 
+    if (this.isPowerball()) {
+      const pool = Array.from({ length: this.pbMainPool }, (_, i) => i + 1);
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j]!, pool[i]!];
+      }
+      const mains = pool.slice(0, this.pbMainPick).sort((a, b) => a - b);
+      this.pbMain.set(mains.join(','));
+      this.pbBonus.set(String(1 + Math.floor(Math.random() * this.pbBonusPool)));
+      this.toast.info('Numbers generated', 'Review the result before submitting for verification.');
+      return;
+    }
+
     this.spinning.set(true);
     const digits = this.digitCount();
 
@@ -238,6 +288,8 @@ export class LiveDraw {
 
   protected clearEntries(): void {
     this.entries.set({});
+    this.pbMain.set('');
+    this.pbBonus.set('');
   }
 
   protected closeSales(): void {
@@ -276,6 +328,10 @@ export class LiveDraw {
   /** Commits the entered numbers and moves the draw to verification. */
   protected submit(): void {
     const draw = this.selected();
+    if (this.isPowerball()) {
+      this.submitPowerball(draw);
+      return;
+    }
     if (!draw || !this.canSubmit()) {
       return;
     }
@@ -307,6 +363,42 @@ export class LiveDraw {
 
         this.busy.set(true);
         this.repository.recordNumbers(draw.id, winningNumbers).subscribe({
+          next: () => {
+            this.busy.set(false);
+            this.toast.success('Result submitted', `${draw.code} is awaiting verification.`);
+            void this.router.navigate(['/draws/results']);
+          },
+          error: () => {
+            this.busy.set(false);
+            this.toast.error('Submission failed', 'The result could not be recorded.');
+          },
+        });
+      });
+  }
+
+  /** Two-pool (Powerball) result submission. */
+  private submitPowerball(draw: Draw | null): void {
+    if (!draw || !this.canSubmitPowerball()) {
+      return;
+    }
+    const mains = this.pbMains().sort((a, b) => a - b);
+    const bonus = Number(this.pbBonus());
+    this.confirm
+      .open({
+        title: 'Submit this Powerball result?',
+        message: `The result for ${draw.code} will be locked and sent for independent verification.`,
+        detail: `Main: ${mains.join(', ')}  ·  Powerball: ${bonus}`,
+        confirmLabel: 'Submit for verification',
+        tone: 'danger',
+        icon: 'fact_check',
+        requireTypedConfirmation: 'CONFIRM',
+      })
+      .subscribe((result) => {
+        if (!result.confirmed) {
+          return;
+        }
+        this.busy.set(true);
+        this.repository.recordPowerball(draw.id, mains.join(','), bonus).subscribe({
           next: () => {
             this.busy.set(false);
             this.toast.success('Result submitted', `${draw.code} is awaiting verification.`);

@@ -385,3 +385,22 @@
     align-items: flex-start;
   }
 }
+
+// Powerball (two-pool) result entry.
+.pb-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  &__label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ll-text-muted, #64748b);
+  }
+}

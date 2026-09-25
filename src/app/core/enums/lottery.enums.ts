@@ -9,6 +9,7 @@ export enum LotteryType {
   Animal = 'ANIMAL',
   Special = 'SPECIAL',
   Holiday = 'HOLIDAY',
+  Powerball = 'POWERBALL',
 }
 
 export enum LotteryStatus {

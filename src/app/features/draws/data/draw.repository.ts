@@ -101,6 +101,17 @@ export class DrawRepository extends BaseRepository<Draw> {
     } as Partial<Draw>);
   }
 
+  /** Records a two-pool (Powerball) result: comma-separated main numbers + a bonus number. */
+  recordPowerball(id: string, mainNumbers: string, bonusNumber: number): Observable<Draw> {
+    if (this.live) {
+      return this.command(id, 'result', { winningNumber: mainNumbers, bonusNumber });
+    }
+    return this.patch(id, {
+      status: DrawStatus.PendingVerification,
+      drawnAt: new Date().toISOString(),
+    } as Partial<Draw>);
+  }
+
   verify(id: string, verifier: string, remarks?: string): Observable<Draw> {
     if (this.live) {
       return this.command(id, "verify", { remarks });

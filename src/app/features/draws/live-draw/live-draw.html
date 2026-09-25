@@ -107,7 +107,11 @@
               <div>
                 <h3 class="ll-card__title">Winning numbers</h3>
                 <p class="ll-card__subtitle">
-                  Enter {{ digitCount() }} digits for each prize tier, or generate them automatically.
+                  @if (isPowerball()) {
+                    Enter the 5 main numbers and the Powerball, or generate them automatically.
+                  } @else {
+                    Enter {{ digitCount() }} digits for each prize tier, or generate them automatically.
+                  }
                 </p>
               </div>
               <div class="console__progress">
@@ -119,6 +123,35 @@
             </header>
 
             <div class="ll-card__body">
+              @if (isPowerball()) {
+                <div class="pb-entry">
+                  <label class="pb-field">
+                    <span class="pb-field__label">Main numbers — pick 5 of 35 (comma separated)</span>
+                    <input
+                      class="tier__input"
+                      type="text"
+                      inputmode="numeric"
+                      placeholder="e.g. 3, 11, 19, 27, 35"
+                      [disabled]="draw.status === DrawStatus.Published"
+                      [ngModel]="pbMain()"
+                      (ngModelChange)="pbMain.set($event)" />
+                  </label>
+                  <label class="pb-field">
+                    <span class="pb-field__label">Powerball — 1 of 10</span>
+                    <input
+                      class="tier__input"
+                      type="text"
+                      inputmode="numeric"
+                      placeholder="e.g. 7"
+                      [disabled]="draw.status === DrawStatus.Published"
+                      [ngModel]="pbBonus()"
+                      (ngModelChange)="pbBonus.set($event)" />
+                  </label>
+                  <p class="console__hint">
+                    Enter 5 distinct main numbers (1–35) and one Powerball (1–10), or generate them.
+                  </p>
+                </div>
+              } @else {
               <div class="tiers">
                 @for (tier of tiers(); track tier.tierCode) {
                   <div class="tier" [class.tier--complete]="entryFor(tier.tierCode).length === digitCount()">
@@ -154,6 +187,7 @@
                   </div>
                 }
               </div>
+              }
 
               <!-- Controls -->
               <div class="console__controls">
@@ -190,7 +224,7 @@
                     mat-flat-button
                     type="button"
                     class="console__submit"
-                    [disabled]="!canSubmit() || spinning() || busy()"
+                    [disabled]="(isPowerball() ? !canSubmitPowerball() : !canSubmit()) || spinning() || busy()"
                     (click)="submit()">
                     <span class="material-symbols-rounded" aria-hidden="true">fact_check</span>
                     Submit for verification
