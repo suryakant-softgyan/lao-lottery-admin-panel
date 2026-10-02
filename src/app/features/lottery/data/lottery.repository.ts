@@ -5,7 +5,7 @@ import { num } from '@core/api/live.util';
 
 import { LotteryStatus } from '@core/enums';
 import { mockDataset } from '@core/mock/dataset';
-import type { LotteryConfiguration, LotteryGame, Page, PageQuery, PrizeTier, StatMetric } from '@core/models';
+import type { LotteryConfiguration, LotteryGame, Page, PageQuery, PoolConfig, PrizeTier, StatMetric } from '@core/models';
 import { BaseRepository } from '@core/services/base-repository';
 import { sumBy } from '@core/utilities/object.util';
 
@@ -30,6 +30,14 @@ export class LotteryRepository extends BaseRepository<LotteryGame> {
 
   savePrizeTiers(id: string, prizeTiers: PrizeTier[]): Observable<LotteryGame> {
     return this.patch(id, { prizeTiers } as Partial<LotteryGame>);
+  }
+
+  /** Saves the Powerball pool settings, jackpot seed, Power Play and POOL_MATCH tiers (one product update). */
+  savePowerball(
+    id: string,
+    changes: { pool: PoolConfig; jackpotAmount: number; prizeTiers: PrizeTier[] },
+  ): Observable<LotteryGame> {
+    return this.patch(id, changes as Partial<LotteryGame>);
   }
 
   setStatus(id: string, status: LotteryStatus): Observable<LotteryGame> {
@@ -151,6 +159,15 @@ export class LotteryRepository extends BaseRepository<LotteryGame> {
       bannerUrl: merged.bannerUrl,
       iconUrl: merged.iconUrl,
       colour: merged.colour,
+      jackpotAmount: merged.jackpotAmount,
+      mainPick: merged.pool?.mainPick,
+      mainPoolSize: merged.pool?.mainPoolSize,
+      bonusPick: merged.pool?.bonusPick,
+      bonusPoolSize: merged.pool?.bonusPoolSize,
+      jackpotContributionPercent: merged.pool?.jackpotContributionPercent,
+      powerPlayEnabled: merged.pool?.powerPlayEnabled,
+      powerPlayMultiplier: merged.pool?.powerPlayMultiplier,
+      powerPlayCostPercent: merged.pool?.powerPlayCostPercent,
       configuration: {
         drawTime: '20:30:00',
         ...(current?.configuration as unknown as Record<string, unknown>),

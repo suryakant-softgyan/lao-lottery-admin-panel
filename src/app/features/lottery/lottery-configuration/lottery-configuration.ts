@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 
 import { LOTTERY_TYPE_MAP } from '@core/constants/status-maps.constants';
-import type { LotteryConfiguration, LotteryGame } from '@core/models';
+import { LotteryType, PrizeTierCode } from '@core/enums';
+import type { LotteryConfiguration, LotteryGame, PoolConfig, PrizeTier } from '@core/models';
 import { ConfirmService } from '@core/services/confirm.service';
 import { ToastService } from '@core/services/toast.service';
 import { DynamicForm } from '@shared/components/dynamic-form/dynamic-form';
@@ -25,7 +27,7 @@ import { LotteryRepository } from '../data/lottery.repository';
 @Component({
   selector: 'll-lottery-configuration',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, PageHeader, DynamicForm, StatusBadge, Skeleton, StatePanel],
+  imports: [FormsModule, MatButtonModule, PageHeader, DynamicForm, StatusBadge, Skeleton, StatePanel],
   templateUrl: './lottery-configuration.html',
   styleUrl: './lottery-configuration.scss',
 })
@@ -191,6 +193,158 @@ export class LotteryConfigurationPage {
     validators: [AppValidators.timeAfter('openTime', 'closeTime')],
   };
 
+  // ---------------------------------------------------------------- Powerball
+
+  /** Staged Powerball settings (pools, jackpot, Power Play) and POOL_MATCH tiers; applied on save. */
+  protected readonly pool = signal<PoolConfig | null>(null);
+  protected readonly seed = signal(0);
+  protected readonly tiers = signal<PrizeTier[]>([]);
+  protected readonly savingPowerball = signal(false);
+
+  protected readonly isPowerball = computed(() => this.selected()?.type === LotteryType.Powerball);
+
+  /** Tier codes not yet used, offered by "Add tier" (the API supports 7 distinct codes). */
+  protected readonly freeCodes = computed(() => {
+    const used = new Set(this.tiers().map((tier) => tier.code));
+    return Object.values(PrizeTierCode).filter((code) => !used.has(code));
+  });
+
+  private syncPowerball(): void {
+    const game = this.selected();
+    if (game?.type === LotteryType.Powerball && game.pool) {
+      this.pool.set({ ...game.pool });
+      this.seed.set(game.jackpotAmount ?? 0);
+      this.tiers.set(game.prizeTiers.map((tier) => ({ ...tier })));
+    } else {
+      this.pool.set(null);
+      this.tiers.set([]);
+    }
+  }
+
+  protected setPool<K extends keyof PoolConfig>(field: K, value: PoolConfig[K]): void {
+    this.pool.update((current) => (current ? { ...current, [field]: value } : current));
+  }
+
+  protected updateTier<K extends keyof PrizeTier>(index: number, field: K, value: PrizeTier[K]): void {
+    this.tiers.update((current) =>
+      current.map((tier, position) => {
+        if (position !== index) {
+          // only one pari-mutuel (jackpot) tier is allowed
+          return field === 'pariMutuel' && value === true ? { ...tier, pariMutuel: false } : tier;
+        }
+        return { ...tier, [field]: value };
+      }),
+    );
+  }
+
+  protected addTier(): void {
+    const code = this.freeCodes()[0];
+    if (!code) {
+      return;
+    }
+    this.tiers.update((current) => [
+      ...current,
+      {
+        id: '',
+        code,
+        name: 'New tier',
+        matchCriteria: '',
+        multiplier: 0,
+        fixedAmount: 0,
+        maxWinners: 0,
+        taxPercent: 0,
+        order: current.length + 1,
+        matchType: 'POOL_MATCH',
+        matchDigits: 0,
+        mainMatch: 0,
+        bonusMatch: false,
+        pariMutuel: false,
+      },
+    ]);
+  }
+
+  protected removeTier(index: number): void {
+    this.tiers.update((current) => current.filter((_, position) => position !== index));
+  }
+
+  /** Client-side mirror of the API rules, so the operator sees the problem before saving. */
+  protected readonly powerballError = computed<string | null>(() => {
+    const pool = this.pool();
+    if (!pool) {
+      return null;
+    }
+    if (pool.mainPick < 1 || pool.mainPick > pool.mainPoolSize) {
+      return 'Main pick count must be between 1 and the main pool size.';
+    }
+    if (pool.bonusPick < 0 || pool.bonusPick > pool.bonusPoolSize) {
+      return 'Bonus pick count cannot exceed the bonus pool size.';
+    }
+    if (pool.jackpotContributionPercent < 0 || pool.jackpotContributionPercent > 100) {
+      return 'Jackpot contribution must be between 0 and 100 percent.';
+    }
+    if (pool.powerPlayEnabled && (pool.powerPlayMultiplier < 2 || pool.powerPlayMultiplier > 10)) {
+      return 'Power Play multiplier must be between 2 and 10.';
+    }
+    if (this.tiers().length === 0) {
+      return 'At least one prize tier is required.';
+    }
+    for (const tier of this.tiers()) {
+      if ((tier.mainMatch ?? 0) > pool.mainPick || (tier.mainMatch ?? 0) < 0) {
+        return `${tier.name}: main matches cannot exceed the main pick count.`;
+      }
+      if (!tier.pariMutuel && tier.fixedAmount <= 0 && tier.multiplier <= 0) {
+        return `${tier.name}: needs a fixed amount or a multiplier (or mark it pari-mutuel).`;
+      }
+    }
+    if (this.tiers().filter((tier) => tier.pariMutuel).length > 1) {
+      return 'Only one tier can be pari-mutuel.';
+    }
+    return null;
+  });
+
+  protected savePowerball(): void {
+    const game = this.selected();
+    const pool = this.pool();
+    if (!game || !pool || this.powerballError()) {
+      return;
+    }
+    this.confirm
+      .ask({
+        title: `Apply Powerball settings to ${game.name}?`,
+        message:
+          'Pool sizes, jackpot rules, Power Play and the prize ladder apply to every draw sold from now on.',
+        detail: 'Changing pool sizes while tickets are on sale for an open draw invalidates those picks.',
+        confirmLabel: 'Apply Powerball settings',
+        tone: 'warning',
+        icon: 'tune',
+      })
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.savingPowerball.set(true);
+        const tiers = this.tiers().map((tier, index) => ({
+          ...tier,
+          matchType: 'POOL_MATCH',
+          order: index + 1,
+          mainMatch: tier.mainMatch ?? 0,
+          bonusMatch: tier.bonusMatch ?? false,
+          pariMutuel: tier.pariMutuel ?? false,
+        }));
+        this.repository.savePowerball(game.id, { pool, jackpotAmount: this.seed(), prizeTiers: tiers }).subscribe({
+          next: () => {
+            this.savingPowerball.set(false);
+            this.toast.success('Powerball settings applied', game.name);
+            this.load();
+          },
+          error: () => {
+            this.savingPowerball.set(false);
+            this.toast.error('Save failed', 'The Powerball settings could not be applied.');
+          },
+        });
+      });
+  }
+
   constructor() {
     this.load();
   }
@@ -205,6 +359,7 @@ export class LotteryConfigurationPage {
         if (!this.selectedId() && games[0]) {
           this.selectedId.set(games[0].id);
         }
+        this.syncPowerball();
         this.loading.set(false);
       },
       error: () => {
@@ -216,6 +371,7 @@ export class LotteryConfigurationPage {
 
   protected select(game: LotteryGame): void {
     this.selectedId.set(game.id);
+    this.syncPowerball();
   }
 
   protected save(value: Record<string, unknown>): void {

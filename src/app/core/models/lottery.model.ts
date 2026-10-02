@@ -23,6 +23,29 @@ export interface PrizeTier {
   maxWinners: number;
   taxPercent: number;
   order: number;
+  /** Prize rule kind (EXACT, LAST_N, POOL_MATCH …); POOL_MATCH is the two-pool Powerball rule. */
+  matchType?: string;
+  matchDigits?: number;
+  /** POOL_MATCH: main numbers that must match. */
+  mainMatch?: number;
+  /** POOL_MATCH: whether the bonus number must also match. */
+  bonusMatch?: boolean;
+  /** POOL_MATCH: the jackpot tier, paid from the shared pool split between winners. */
+  pariMutuel?: boolean;
+}
+
+/** Two-pool (Powerball) settings; zeroes for other game types. */
+export interface PoolConfig {
+  mainPick: number;
+  mainPoolSize: number;
+  bonusPick: number;
+  bonusPoolSize: number;
+  /** Live accumulated jackpot (read-only in the UI). */
+  jackpotPool: number;
+  jackpotContributionPercent: number;
+  powerPlayEnabled: boolean;
+  powerPlayMultiplier: number;
+  powerPlayCostPercent: number;
 }
 
 export interface LotteryConfiguration {
@@ -55,6 +78,9 @@ export interface LotteryGame extends AuditableEntity {
   iconUrl: string;
   colour: string;
   configuration: LotteryConfiguration;
+  /** Jackpot seed (Powerball: the pool resets to this after a win). */
+  jackpotAmount?: number;
+  pool?: PoolConfig;
   prizeTiers: PrizeTier[];
   totalDraws: number;
   activeDraws: number;
@@ -119,6 +145,9 @@ export interface TicketLine {
   numbers: string[];
   betType: string;
   stake: number;
+  /** Powerball Power Play: multiplier add-on bought for this line. */
+  powerPlay?: boolean;
+  powerPlayFee?: number;
   potentialPayout: number;
   won: boolean;
   matchedTier?: PrizeTierCode;

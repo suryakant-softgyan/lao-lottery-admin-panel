@@ -68,6 +68,109 @@
               (formSubmit)="save($event)"
               (cancelled)="onHeaderAction('back')" />
           </div>
+
+          @if (isPowerball() && pool(); as p) {
+            <div class="ll-card__body pb">
+              <h4 class="pb__title">Powerball configuration</h4>
+              <p class="pb__hint">
+                Two-pool game: players pick numbers from the main pool and one from the bonus pool. The jackpot is
+                pari-mutuel and rolls over until won.
+              </p>
+
+              <div class="pb__grid">
+                <label class="pb__field">
+                  <span>Main pool size</span>
+                  <input type="number" min="1" [ngModel]="p.mainPoolSize" (ngModelChange)="setPool('mainPoolSize', +$event)" />
+                </label>
+                <label class="pb__field">
+                  <span>Main pick count</span>
+                  <input type="number" min="1" [ngModel]="p.mainPick" (ngModelChange)="setPool('mainPick', +$event)" />
+                </label>
+                <label class="pb__field">
+                  <span>Bonus pool size</span>
+                  <input type="number" min="1" [ngModel]="p.bonusPoolSize" (ngModelChange)="setPool('bonusPoolSize', +$event)" />
+                </label>
+                <label class="pb__field">
+                  <span>Bonus pick count</span>
+                  <input type="number" min="0" [ngModel]="p.bonusPick" (ngModelChange)="setPool('bonusPick', +$event)" />
+                </label>
+                <label class="pb__field">
+                  <span>Jackpot seed (₭)</span>
+                  <input type="number" min="0" step="1000000" [ngModel]="seed()" (ngModelChange)="seed.set(+$event)" />
+                </label>
+                <label class="pb__field">
+                  <span>Jackpot contribution (% of sales)</span>
+                  <input type="number" min="0" max="100" step="0.5" [ngModel]="p.jackpotContributionPercent" (ngModelChange)="setPool('jackpotContributionPercent', +$event)" />
+                </label>
+                <div class="pb__field">
+                  <span>Live jackpot pool</span>
+                  <strong class="ll-numeric">{{ p.jackpotPool }}</strong>
+                </div>
+              </div>
+
+              <h4 class="pb__title">Power Play</h4>
+              <div class="pb__grid">
+                <label class="pb__field pb__field--check">
+                  <input type="checkbox" [ngModel]="p.powerPlayEnabled" (ngModelChange)="setPool('powerPlayEnabled', $event)" />
+                  <span>Offer Power Play</span>
+                </label>
+                <label class="pb__field">
+                  <span>Prize multiplier (2–10×)</span>
+                  <input type="number" min="2" max="10" [disabled]="!p.powerPlayEnabled" [ngModel]="p.powerPlayMultiplier" (ngModelChange)="setPool('powerPlayMultiplier', +$event)" />
+                </label>
+                <label class="pb__field">
+                  <span>Extra cost (% of stake)</span>
+                  <input type="number" min="0" max="1000" [disabled]="!p.powerPlayEnabled" [ngModel]="p.powerPlayCostPercent" (ngModelChange)="setPool('powerPlayCostPercent', +$event)" />
+                </label>
+              </div>
+
+              <h4 class="pb__title">Prize tiers (POOL_MATCH)</h4>
+              <div class="ll-scroll-x">
+                <table class="pb__tiers">
+                  <thead>
+                    <tr>
+                      <th scope="col">Code</th>
+                      <th scope="col">Name</th>
+                      <th scope="col">Main matches</th>
+                      <th scope="col">Bonus</th>
+                      <th scope="col">Pari-mutuel</th>
+                      <th scope="col">Fixed amount (₭)</th>
+                      <th scope="col">Multiplier</th>
+                      <th scope="col"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (tier of tiers(); track tier.code; let i = $index) {
+                      <tr>
+                        <th scope="row">{{ tier.code }}</th>
+                        <td><input type="text" [attr.aria-label]="'Name of ' + tier.code" [ngModel]="tier.name" (ngModelChange)="updateTier(i, 'name', $event)" /></td>
+                        <td><input type="number" min="0" [attr.aria-label]="'Main matches of ' + tier.code" [ngModel]="tier.mainMatch" (ngModelChange)="updateTier(i, 'mainMatch', +$event)" /></td>
+                        <td><input type="checkbox" [attr.aria-label]="'Bonus must match for ' + tier.code" [ngModel]="tier.bonusMatch" (ngModelChange)="updateTier(i, 'bonusMatch', $event)" /></td>
+                        <td><input type="checkbox" [attr.aria-label]="'Pari-mutuel ' + tier.code" [ngModel]="tier.pariMutuel" (ngModelChange)="updateTier(i, 'pariMutuel', $event)" /></td>
+                        <td><input type="number" min="0" [disabled]="!!tier.pariMutuel" [attr.aria-label]="'Fixed amount of ' + tier.code" [ngModel]="tier.fixedAmount" (ngModelChange)="updateTier(i, 'fixedAmount', +$event)" /></td>
+                        <td><input type="number" min="0" step="0.5" [disabled]="!!tier.pariMutuel" [attr.aria-label]="'Multiplier of ' + tier.code" [ngModel]="tier.multiplier" (ngModelChange)="updateTier(i, 'multiplier', +$event)" /></td>
+                        <td><button type="button" mat-button (click)="removeTier(i)" [attr.aria-label]="'Remove ' + tier.code">Remove</button></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <p class="pb__hint">
+                The first tier a play satisfies (lowest order wins) pays out; put "5 + bonus" above "5". A pari-mutuel tier
+                splits the jackpot pool between its winners.
+              </p>
+
+              @if (powerballError(); as error) {
+                <p class="pb__error" role="alert">{{ error }}</p>
+              }
+              <div class="pb__actions">
+                <button mat-button type="button" [disabled]="freeCodes().length === 0" (click)="addTier()">Add tier</button>
+                <button mat-flat-button type="button" [disabled]="!!powerballError() || savingPowerball()" (click)="savePowerball()">
+                  Apply Powerball settings
+                </button>
+              </div>
+            </div>
+          }
         } @else {
           <ll-state-panel
             kind="empty"

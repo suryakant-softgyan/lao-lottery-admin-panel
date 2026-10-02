@@ -171,7 +171,12 @@
                 @for (line of ticket.lines; track line.id) {
                   <tr [class.lines-table__row--won]="line.won">
                     <td class="ll-mono">{{ line.numbers.join(', ') }}</td>
-                    <td>{{ line.betType }}</td>
+                    <td>
+                      {{ line.betType }}
+                      @if (line.powerPlay) {
+                        <span class="ll-badge ll-badge--info">Power Play +{{ line.powerPlayFee ?? 0 | llCurrency }}</span>
+                      }
+                    </td>
                     <td class="ll-numeric">{{ line.stake | llCurrency }}</td>
                     <td class="ll-numeric">{{ line.potentialPayout | llCurrency }}</td>
                     <td>
